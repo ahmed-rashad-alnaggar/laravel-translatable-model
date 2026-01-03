@@ -1,0 +1,37 @@
+{
+    "name": "alnaggar/laravel-translatable-model",
+    "description": "A Laravel package to store model attribute translations in a separate database table.",
+    "keywords": [
+        "laravel",
+        "eloquent",
+        "translation",
+        "translatable",
+        "model"
+    ],
+    "type": "library",
+    "require": {
+        "php": ">=7.3",
+        "illuminate/database": ">=8.0",
+        "illuminate/support": ">=8.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Alnaggar\\TranslatableModel\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Ahmad Muhammad Rashad"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Alnaggar\\TranslatableModel\\TranslatableModelServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
