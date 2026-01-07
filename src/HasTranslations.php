@@ -416,9 +416,11 @@ trait HasTranslations
      */
     protected function defaultFallbackBehavior()
     {
-        return property_exists($this, 'defaultFallbackBehavior')
-            ? $this->defaultFallbackBehavior
-            : config('translatable-model.fallback_behavior');
+        static $defaultFallbackBehavior = property_exists($this, 'defaultFallbackBehavior')
+        ? $this->defaultFallbackBehavior
+        : config('translatable-model.fallback_behavior');
+
+        return $defaultFallbackBehavior;
     }
 
     /**
