@@ -267,11 +267,11 @@ trait HasTranslations
                     }
                 }
 
-                if (array_key_exists($locale, $this->cachedTranslationsToDelete)) {
-                    $translationKeyIndex = array_search($key, $this->cachedTranslationsToDelete[$locale]);
+                if (array_key_exists($translationLocale, $this->cachedTranslationsToDelete)) {
+                    $translationKeyIndex = array_search($key, $this->cachedTranslationsToDelete[$translationLocale]);
 
                     if ($translationKeyIndex !== false) {
-                        unset($this->cachedTranslationsToDelete[$locale][$translationKeyIndex]);
+                        unset($this->cachedTranslationsToDelete[$translationLocale][$translationKeyIndex]);
                     }
                 }
             } else {
