@@ -67,6 +67,8 @@ The published config file is `config/translatable-model.php` and exposes:
   - `true` or `null`: Fallback to the application fallback locale.
   - `false`: Do not fallback to any locale (return `null`).
 
+- `flush_translations_on_soft_delete` (`bool`): When `true`, translations will be flushed when a model is soft-deleted. When `false` (default), translations are only flushed on a force-delete.
+
 ## Migration
 
 The package publishes a migration that creates the `model_translations` table with the following columns:
@@ -184,7 +186,7 @@ $post->save();
 
 All translation operations are queued on the model instance and persisted when the model **is saved**.
 
-**Deleting the model flushes all its translations automatically.**
+**Deleting the model flushes all its translations automatically.** For models using SoftDeletes, by default translations are flushed only when the model is force deleted; to flush on soft delete set `flush_translations_on_soft_delete` to `true` in the package config.
 
 ### Checking translation existence
 

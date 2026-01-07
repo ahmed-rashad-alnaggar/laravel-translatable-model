@@ -34,5 +34,16 @@ return [
     |
     */
     'fallback_behavior' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remove Translations On Soft Delete
+    |--------------------------------------------------------------------------
+    |
+    | When true, translations will be flushed when a model is soft-deleted.
+    | When false (default), translations are only flushed on a force-delete.
+    |
+    */
+    'flush_translations_on_soft_delete' => false,
     
 ];

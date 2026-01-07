@@ -52,8 +52,16 @@ trait HasTranslations
             $model->handleTranslationsToDelete();
         });
 
-        // Flush all related translation when the model is deleted.
+        // Flush all related translation when the model is deleted, with respect to soft-deletes.
         static::deleted(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model */ $model): void {
+            $shouldFlushOnSoftDelete = config('translatable-model.flush_translations_on_soft_delete', false);
+
+            if (method_exists($model, 'trashed') // Model uses the SoftDeletes trait
+                && $model->exists // true => Model is soft-deleted, false => Model is force-deleted
+                && ! $shouldFlushOnSoftDelete) {
+                return;
+            }
+
             app(ModelTranslationsRepository::class)->flushModelTranslations($model->getMorphClass(), $model->getKey());
         });
     }
