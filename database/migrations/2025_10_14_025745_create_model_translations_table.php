@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('translatable_id'); // A string for numaric/string ids
             $table->string('locale');
             $table->string('key');
-            $table->text('value')->nullable();
+            $table->text('value');
             $table->timestamps();
 
             $table->primary(['translatable_type', 'translatable_id', 'locale', 'key']);
