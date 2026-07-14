@@ -56,9 +56,11 @@ trait HasTranslations
         static::deleted(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model */ $model): void {
             $shouldFlushOnSoftDelete = config('translatable-model.flush_translations_on_soft_delete', false);
 
-            if (method_exists($model, 'trashed') // Model uses the SoftDeletes trait
+            if (
+                method_exists($model, 'trashed') // Model uses the SoftDeletes trait
                 && $model->exists // true => Model is soft-deleted, false => Model is force-deleted
-                && ! $shouldFlushOnSoftDelete) {
+                && ! $shouldFlushOnSoftDelete
+            ) {
                 return;
             }
 
@@ -346,7 +348,7 @@ trait HasTranslations
      */
     public function flushTranslations(?string $locale)
     {
-        if (is_null($locale)) {
+        if (blank($locale)) {
             $translations = array_replace_recursive(
                 $this->cachedTranslations,
                 $this->cachedTranslationsToUpdate,
@@ -417,8 +419,8 @@ trait HasTranslations
     protected function defaultFallbackBehavior()
     {
         static $defaultFallbackBehavior = property_exists($this, 'defaultFallbackBehavior')
-        ? $this->defaultFallbackBehavior
-        : config('translatable-model.fallback_behavior');
+            ? $this->defaultFallbackBehavior
+            : config('translatable-model.fallback_behavior');
 
         return $defaultFallbackBehavior;
     }

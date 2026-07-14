@@ -5,7 +5,6 @@ namespace Alnaggar\TranslatableModel;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
 
 class ModelTranslationsRepository
 {
@@ -38,7 +37,7 @@ class ModelTranslationsRepository
     public function getModelTranslationsForLocale(string $translatableType, $translatableId, string $locale): array
     {
         return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', '=', $locale)
+            ->where('locale', $locale)
             ->pluck('value', 'key')
             ->toArray();
     }
@@ -120,7 +119,7 @@ class ModelTranslationsRepository
     public function removeModelTranslations(array $keys, string $translatableType, $translatableId, string $locale): int
     {
         return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', '=', $locale)
+            ->where('locale', $locale)
             ->whereIn('key', $keys)
             ->delete();
     }

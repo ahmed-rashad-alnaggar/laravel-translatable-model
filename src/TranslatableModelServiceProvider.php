@@ -2,8 +2,7 @@
 
 namespace Alnaggar\TranslatableModel;
 
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
 
 class TranslatableModelServiceProvider extends ServiceProvider
@@ -15,8 +14,10 @@ class TranslatableModelServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(ModelTranslationsRepository::class, function (): ModelTranslationsRepository {
-            return new ModelTranslationsRepository(DB::connection(Config::get('translatable-model.connection', null)));
+        $this->app->singleton(ModelTranslationsRepository::class, static function (Container $app): ModelTranslationsRepository {
+            return new ModelTranslationsRepository(
+                $app->make('db')->connection($app->make('config')->get('translatable-model.connection'))
+            );
         });
 
         $this->mergeConfigFrom(__DIR__.'/../config/translatable-model.php', 'translatable-model');
