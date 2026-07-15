@@ -117,7 +117,9 @@ trait HasTranslations
             }
 
             if ($this->isAttributeNestingTranslatableAttribute($key)) {
-                return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
+                if (! Str::contains($key, '.')) {
+                    return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
+                }
             }
         }
 
