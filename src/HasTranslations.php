@@ -337,7 +337,9 @@ trait HasTranslations
     {
         $locale = $locale ?? app()->currentLocale();
 
-        $this->cachedTranslationsToDelete[$locale][] = $key;
+        if (! in_array($key, $this->cachedTranslationsToDelete[$locale] ?? [])) {
+            $this->cachedTranslationsToDelete[$locale][] = $key;
+        }
 
         unset($this->cachedTranslationsToUpdate[$locale][$key]);
 
