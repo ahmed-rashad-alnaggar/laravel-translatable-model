@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 trait HasTranslations
 {
     /**
-     * Cached dot-notation array of the translatable attributes.
+     * Cached dot-notated array of the translatable attributes.
      * 
      * @var array<string>
      * @internal
@@ -24,7 +24,7 @@ trait HasTranslations
     protected $cachedTranslations = [];
 
     /**
-     * Cached translations to update when saving the model.
+     * Cached translations-to-update when saving the model.
      * 
      * @var array<string, array<string, string>>
      * @internal
@@ -32,7 +32,7 @@ trait HasTranslations
     protected $cachedTranslationsToUpdate = [];
 
     /**
-     * Cached translations to delete when saving the model.
+     * Cached translations-to-delete when saving the model.
      * 
      * @var array<string, array<string>>
      * @internal
@@ -52,7 +52,7 @@ trait HasTranslations
             $model->handleTranslationsToDelete();
         });
 
-        // Flush all related translation when the model is deleted, with respect to soft-deletes.
+        // Flush all related translations when the model is deleted, with respect to soft-deletes.
         static::deleted(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model */ $model): void {
             $shouldFlushOnSoftDelete = config('translatable-model.flush_translations_on_soft_delete', false);
 
@@ -69,7 +69,7 @@ trait HasTranslations
     }
 
     /**
-     * Upserts translations in/to the database.
+     * Upsert cached to-update-translations in/to the database.
      * 
      * @return void
      * @internal
@@ -87,7 +87,7 @@ trait HasTranslations
     }
 
     /**
-     * Removes cached to remove translations from the store.
+     * Remove cached to-delete-translations from the database.
      * 
      * @return void
      * @internal
@@ -117,6 +117,8 @@ trait HasTranslations
             }
 
             if ($this->isAttributeNestingTranslatableAttribute($key)) {
+                // Laravel doesn't support resolving nested attributes
+                // via a dot-notated string key (e.g. $model['address.city']).
                 if (! Str::contains($key, '.')) {
                     return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
                 }
@@ -127,7 +129,7 @@ trait HasTranslations
     }
 
     /**
-     * Retrieve the value of a translatable attribute.
+     * Retrieve the value of a **listed translatable attribute**.
      * 
      * @param string $key
      * @param string|null $locale Translation locale, fallback to app locale if `null`
@@ -143,7 +145,7 @@ trait HasTranslations
     }
 
     /**
-     * Retrieves the translation of a listed translatable attribute.
+     * Retrieve the translation of a **listed translatable attribute**.
      * 
      * @param string $key
      * @param string|null $locale
@@ -180,7 +182,7 @@ trait HasTranslations
     }
 
     /**
-     * Retrieves the root attribute with all nested translatable values injected.
+     * Retrieve the nesting attribute with all its nested translatable values injected.
      * 
      * @param string $key
      * @param string|null $locale
@@ -234,6 +236,8 @@ trait HasTranslations
         }
 
         if ($this->isAttributeNestingTranslatableAttribute($normalizedKey)) {
+            // Laravel doesn't support setting nested attributes
+            // via a dot-notated string key (e.g. $model['address.city'] = $value).
             if (! Str::contains($key, '.')) {
                 return $this->setAttributeNestingTranslatableAttributeValue($normalizedKey, $value, null);
             }
@@ -243,7 +247,7 @@ trait HasTranslations
     }
 
     /**
-     * Set/Add a translation(s) for a translatable attribute.
+     * Set/Add a translation(s) for a **listed translatable attribute**.
      * 
      * @param string $key
      * @param array<string, string>|string $value
@@ -256,7 +260,7 @@ trait HasTranslations
     }
 
     /**
-     * Sets/Adds the translation(s) for a translatable attribute.
+     * Set/Add a translation(s) for a **listed translatable attribute**.
      * 
      * @param string $key
      * @param array<string, string>|string $value
@@ -302,7 +306,7 @@ trait HasTranslations
     }
 
     /**
-     * Sets an attribute while handling its nested translatable attributes.
+     * Set a nesting attribute while handling its nested translatable attributes.
      * 
      * @param string $key
      * @param mixed $value
@@ -316,6 +320,9 @@ trait HasTranslations
                 return Str::startsWith($translatableKey, $key.'.');
             })
             ->each(function (string $translatableKey) use ($key, &$value, $locale): void {
+                // Unlike `getAttributeNestingTranslatableAttributeValue()` method, we strip the full `$key.` prefix here
+                // instead of stopping at the first dot, since $key may itself be
+                // dot-notated from a "root->nested" attribute rather than a single segment.
                 $nestedKey = Str::after($translatableKey, $key.'.');
                 $translation = data_get($value, $nestedKey);
                 $this->setTranslatableAttributeValue($translatableKey, $translation, $locale);
@@ -328,10 +335,11 @@ trait HasTranslations
     }
 
     /**
-     * Remove a (?nested) translatable attribute translation.
+     * Remove a **listed translatable attribute** translation.
      * 
      * @param string $key
      * @param string|null $locale Translation locale, fallback to app locale if `null`
+     * @return static
      */
     public function removeTranslation(string $key, ?string $locale = null)
     {
@@ -401,8 +409,8 @@ trait HasTranslations
     }
 
     /**
-     * Checks if the attribute contains any translatable sub-attributes.
-
+     * Check if the attribute contains any translatable nested attributes.
+     * 
      * @param string $key
      * @return bool
      */
@@ -432,7 +440,7 @@ trait HasTranslations
     }
 
     /**
-     * A dot notation array of the translatable attributes.
+     * A dot-notated array of the translatable attributes.
      * 
      * @return array
      */

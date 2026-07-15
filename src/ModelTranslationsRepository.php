@@ -16,7 +16,7 @@ class ModelTranslationsRepository
     protected $connection;
 
     /**
-     * Creates a new instance.
+     * Create a new instance.
      * 
      * @param \Illuminate\Database\ConnectionInterface $connection
      * @return void
@@ -61,7 +61,7 @@ class ModelTranslationsRepository
     /**
      * Upsert translations for a model in a specific locale, `null` values will remove the corresponding translation.
      *
-     * @param array<string, string> $translations
+     * @param array<string, string|null> $translations
      * @param string $translatableType
      * @param string|int $translatableId
      * @param string $locale
