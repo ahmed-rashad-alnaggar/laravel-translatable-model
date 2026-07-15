@@ -228,11 +228,13 @@ trait HasTranslations
         $normalizedKey = str_replace('->', '.', $key);
 
         if ($this->isTranslatableAttribute($normalizedKey)) {
-            return $this->setTranslatableAttributeValue($key, $value, null);
+            return $this->setTranslatableAttributeValue($normalizedKey, $value, null);
         }
 
         if ($this->isAttributeNestingTranslatableAttribute($normalizedKey)) {
-            return $this->setAttributeNestingTranslatableAttributeValue($key, $value, null);
+            if (! Str::contains($key, '.')) {
+                return $this->setAttributeNestingTranslatableAttributeValue($normalizedKey, $value, null);
+            }
         }
 
         return parent::setAttribute($key, $value);
@@ -311,8 +313,8 @@ trait HasTranslations
             ->filter(static function (string $translatableKey) use ($key): bool {
                 return Str::startsWith($translatableKey, $key.'.');
             })
-            ->each(function (string $translatableKey) use (&$value, $locale): void {
-                $nestedKey = Str::after($translatableKey, '.');
+            ->each(function (string $translatableKey) use ($key, &$value, $locale): void {
+                $nestedKey = Str::after($translatableKey, $key.'.');
                 $translation = data_get($value, $nestedKey);
                 $this->setTranslatableAttributeValue($translatableKey, $translation, $locale);
 
@@ -320,7 +322,7 @@ trait HasTranslations
                 data_set($value, $nestedKey, null);
             });
 
-        return parent::setAttribute($key, $value);
+        return parent::setAttribute(str_replace('.', '->', $key), $value);
     }
 
     /**
