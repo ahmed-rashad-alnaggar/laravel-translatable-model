@@ -95,7 +95,7 @@ trait HasTranslations
     protected function handleTranslationsToDelete(): void
     {
         foreach ($this->cachedTranslationsToDelete as $locale => $keys) {
-            app(ModelTranslationsRepository::class)->removeModelTranslations($keys, $this->getMorphClass(), $this->getKey(), $locale);
+            app(ModelTranslationsRepository::class)->deleteModelTranslations($keys, $this->getMorphClass(), $this->getKey(), $locale);
 
             foreach ($keys as $key) {
                 unset($this->cachedTranslations[$locale][$key]);

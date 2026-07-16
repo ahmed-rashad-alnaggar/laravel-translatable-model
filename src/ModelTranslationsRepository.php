@@ -59,7 +59,7 @@ class ModelTranslationsRepository
     }
 
     /**
-     * Upsert translations for a model in a specific locale, `null` values will remove the corresponding translation.
+     * Upsert translations for a model in a specific locale, `null` values will delete the corresponding translation.
      *
      * @param array<string, string|null> $translations
      * @param string $translatableType
@@ -71,7 +71,7 @@ class ModelTranslationsRepository
     {
         $affectedRows = 0;
 
-        [$translations, $translationsToRemove] = collect($translations)->partition(
+        [$translations, $translationsToDelete] = collect($translations)->partition(
             static function (?string $translation): bool {
                 return ! is_null($translation);
             }
@@ -100,15 +100,15 @@ class ModelTranslationsRepository
                 ['value', 'updated_at']
             );
 
-        if ($translationsToRemove->isNotEmpty()) {
-            $affectedRows += $this->removeModelTranslations($translationsToRemove->keys()->toArray(), $translatableType, $translatableId, $locale);
+        if ($translationsToDelete->isNotEmpty()) {
+            $affectedRows += $this->deleteModelTranslations($translationsToDelete->keys()->toArray(), $translatableType, $translatableId, $locale);
         }
 
         return $affectedRows;
     }
 
     /**
-     * Remove translations for a model in a specific locale.
+     * Delete translations for a model in a specific locale.
      *
      * @param array<string> $keys
      * @param string $translatableType
@@ -116,7 +116,7 @@ class ModelTranslationsRepository
      * @param string $locale
      * @return int
      */
-    public function removeModelTranslations(array $keys, string $translatableType, $translatableId, string $locale): int
+    public function deleteModelTranslations(array $keys, string $translatableType, $translatableId, string $locale): int
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->where('locale', $locale)
@@ -125,7 +125,7 @@ class ModelTranslationsRepository
     }
 
     /**
-     * Remove all translations for a model across all locales.
+     * Delete all translations for a model across all locales.
      *
      * @param string $translatableType
      * @param string|int $translatableId
