@@ -109,6 +109,20 @@ trait HasTranslations
     /**
      * {@inheritDoc}
      */
+    protected function newBaseQueryBuilder()
+    {
+        $connection = $this->getConnection();
+
+        return (new TranslatableQueryBuilder(
+            $connection,
+            $connection->getQueryGrammar(),
+            $connection->getPostProcessor()
+        ))->setTranslatableModel($this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getAttributeValue($key)
     {
         if ($key !== $this->getKeyName()) {
