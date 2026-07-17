@@ -27,6 +27,29 @@ class ModelTranslationsRepository
     }
 
     /**
+     * Get all translatable attributes for the given translatable model.
+     *
+     * If no model ID is provided, translatable attributes from all instances of
+     * the given translatable model are returned.
+     *
+     * @param string $translatableType
+     * @param string|int|null $translatableId
+     * @return array<int, string>
+     */
+    public function getModelTranslatableAttributes(string $translatableType, $translatableId = null): array
+    {
+        return $this->table()
+            ->where(
+                blank($translatableId)
+                ? ['translatable_type' => $translatableType]
+                : ['translatable_type' => $translatableType, 'translatable_id' => $translatableId]
+            )
+            ->distinct()
+            ->pluck('key')
+            ->toArray();
+    }
+
+    /**
      * Get all translations for a model in a specific locale.
      * 
      * @param string $translatableType
@@ -37,7 +60,7 @@ class ModelTranslationsRepository
     public function getModelTranslationsForLocale(string $translatableType, $translatableId, string $locale): array
     {
         return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', $locale)
+            ->where('locale', '=', $locale)
             ->pluck('value', 'key')
             ->toArray();
     }
@@ -119,7 +142,7 @@ class ModelTranslationsRepository
     public function deleteModelTranslations(array $keys, string $translatableType, $translatableId, string $locale): int
     {
         return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', $locale)
+            ->where('locale', '=', $locale)
             ->whereIn('key', $keys)
             ->delete();
     }

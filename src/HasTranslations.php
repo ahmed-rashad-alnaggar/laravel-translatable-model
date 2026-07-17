@@ -116,12 +116,13 @@ trait HasTranslations
                 return $this->getTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
             }
 
-            if ($this->isAttributeNestingTranslatableAttribute($key)) {
+            if (
+                $this->isAttributeNestingTranslatableAttribute($key)
                 // Laravel doesn't support resolving nested attributes
                 // via a dot-notated string key (e.g. $model['address.city']).
-                if (! Str::contains($key, '.')) {
-                    return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
-                }
+                && ! Str::contains($key, '.')
+            ) {
+                return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
             }
         }
 
@@ -235,12 +236,13 @@ trait HasTranslations
             return $this->setTranslatableAttributeValue($normalizedKey, $value, null);
         }
 
-        if ($this->isAttributeNestingTranslatableAttribute($normalizedKey)) {
+        if (
+            $this->isAttributeNestingTranslatableAttribute($normalizedKey)
             // Laravel doesn't support setting nested attributes
             // via a dot-notated string key (e.g. $model['address.city'] = $value).
-            if (! Str::contains($key, '.')) {
-                return $this->setAttributeNestingTranslatableAttributeValue($normalizedKey, $value, null);
-            }
+            && ! Str::contains($key, '.')
+        ) {
+            return $this->setAttributeNestingTranslatableAttributeValue($normalizedKey, $value, null);
         }
 
         return parent::setAttribute($key, $value);
@@ -454,7 +456,7 @@ trait HasTranslations
             ? $this->translatables
             : array_keys(array_merge(
                 Arr::collapse($this->cachedTranslationsToUpdate),
-                Arr::collapse(app(ModelTranslationsRepository::class)->getModelTranslations($this->getMorphClass(), $this->getKey()))
+                array_flip(app(ModelTranslationsRepository::class)->getModelTranslatableAttributes($this->getMorphClass(), $this->getKey()))
             ));
     }
 }
