@@ -95,7 +95,7 @@ class TranslatableQueryBuilder extends Builder
         $modelMorphClass = $this->translatableModel->getMorphClass();
         $locale = $locale ?? app()->currentLocale();
 
-        $this->leftJoin("model_translations as {$translationsTableAlias}", function (JoinClause $join) use ($translationsTableAlias, $modelTable, $modelPrimaryKeyName, $modelMorphClass, $translationKey, $locale) {
+        $this->leftJoin("model_translations as {$translationsTableAlias}", static function (JoinClause $join) use ($translationsTableAlias, $modelTable, $modelPrimaryKeyName, $modelMorphClass, $translationKey, $locale) {
             $join->on("{$translationsTableAlias}.translatable_id", '=', $modelTable.'.'.$modelPrimaryKeyName)
                 ->where("{$translationsTableAlias}.translatable_type", '=', $modelMorphClass)
                 ->where("{$translationsTableAlias}.key", '=', $translationKey)
