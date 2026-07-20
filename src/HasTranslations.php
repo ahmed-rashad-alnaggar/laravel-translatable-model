@@ -16,44 +16,21 @@ trait HasTranslations
     protected $cachedTranslatables;
 
     /**
-     * Cached translations to avoid fetching them from the database on every retrieval call.
+     * The translations state for this model instance.
      * 
-     * @var array<string, array<string, string>>
-     * @internal
+     * @var \Alnaggar\TranslatableModel\ModelTranslationsState
      */
-    protected $cachedTranslations = [];
+    protected $translationsState;
 
     /**
-     * Cached translations-to-update when saving the model.
+     * Initialize the HasTranslations trait. 
      * 
-     * @var array<string, array<string, string>>
-     * @internal
+     * @return void
      */
-    protected $cachedTranslationsToUpdate = [];
-
-    /**
-     * Cached translations-to-delete when saving the model.
-     * 
-     * @var array<string, array<string>>
-     * @internal
-     */
-    protected $cachedTranslationsToDelete = [];
-
-    /**
-     * Cached translations-to-flush when saving the model.
-     * 
-     * @var array<string>
-     * @internal
-     */
-    protected $cachedTranslationsToFlush = [];
-
-    /**
-     * Cached locales-to-flush when saving the model.
-     * 
-     * @var array<string>
-     * @internal
-     */
-    protected $cachedLocalesToFlush = [];
+    public function initializeHasTranslations(): void
+    {
+        $this->translationsState = new ModelTranslationsState($this);
+    }
 
     /**
      * Boot the HasTranslations trait. 
@@ -64,10 +41,7 @@ trait HasTranslations
     {
         // Defer saving/deleting translations until the model is saved.
         static::saved(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model */ $model): void {
-            $model->handleLocalesToFlush();
-            $model->handleTranslationsToFlush();
-            $model->handleTranslationsToUpdate();
-            $model->handleTranslationsToDelete();
+            $model->getTranslationsState()->commit();
         });
 
         // Flush all related translations when the model is deleted, with respect to soft-deletes.
@@ -80,94 +54,8 @@ trait HasTranslations
                 return;
             }
 
-            $model->translationsRepository()->flushAllModelTranslations($model->getMorphClass(), $model->getKey());
+            $model->getTranslationsState()->flushAll()->commit();
         });
-    }
-
-    /**
-     * Upsert cached translations-to-update into the database.
-     * 
-     * @return void
-     * @internal
-     */
-    protected function handleTranslationsToUpdate(): void
-    {
-        foreach ($this->cachedTranslationsToUpdate as $locale => $translations) {
-            if (filled($translations)) {
-                $this->translationsRepository()->upsertModelTranslationsForLocale($translations, $this->getMorphClass(), $this->getKey(), $locale);
-            }
-        }
-
-        $this->cachedTranslations = array_replace_recursive($this->cachedTranslations, $this->cachedTranslationsToUpdate);
-
-        // Clear the cache.
-        $this->cachedTranslationsToUpdate = [];
-    }
-
-    /**
-     * Delete cached translations-to-delete from the database.
-     * 
-     * @return void
-     * @internal
-     */
-    protected function handleTranslationsToDelete(): void
-    {
-        foreach ($this->cachedTranslationsToDelete as $locale => $keys) {
-            if (filled($keys)) {
-                $this->translationsRepository()->deleteModelTranslationsForLocale($keys, $this->getMorphClass(), $this->getKey(), $locale);
-
-                foreach ($keys as $key) {
-                    unset($this->cachedTranslations[$locale][$key]);
-                }
-            }
-        }
-
-        $this->cachedTranslationsToDelete = [];
-    }
-
-    /**
-     * Delete cached translations-to-flush from the database across all locales.
-     * 
-     * @return void
-     * @internal
-     */
-    protected function handleTranslationsToFlush(): void
-    {
-        if (filled($this->cachedTranslationsToFlush)) {
-            $this->translationsRepository()->flushModelTranslations($this->cachedTranslationsToFlush, $this->getMorphClass(), $this->getKey());
-
-            $flippedKeys = array_flip($this->cachedTranslationsToFlush);
-
-            foreach ($this->cachedTranslations as $locale => $translations) {
-                $this->cachedTranslations[$locale] = array_diff_key($translations, $flippedKeys);
-            }
-
-            $this->cachedTranslationsToFlush = [];
-        }
-    }
-
-    /**
-     * Delete cached locales-to-flush from the database, or all translations
-     * entirely if a `null` locale is queued.
-     * 
-     * @return void
-     * @internal
-     */
-    protected function handleLocalesToFlush(): void
-    {
-        foreach ($this->cachedLocalesToFlush as $locale) {
-            if (blank($locale)) {
-                $this->translationsRepository()->flushAllModelTranslations($this->getMorphClass(), $this->getKey());
-                $this->cachedTranslations = [];
-
-                break;
-            } else {
-                $this->translationsRepository()->deleteAllModelTranslationsForLocale($this->getMorphClass(), $this->getKey(), $locale);
-                unset($this->cachedTranslations[$locale]);
-            }
-        }
-
-        $this->cachedLocalesToFlush = [];
     }
 
     /**
@@ -185,34 +73,42 @@ trait HasTranslations
     }
 
     /**
-     * Resolve the model translations repository instance.
-     * 
-     * @return \Alnaggar\TranslatableModel\ModelTranslationsRepository
+     * Get the translations state for this model instance.
+     *
+     * @return \Alnaggar\TranslatableModel\ModelTranslationsState
      */
-    protected function translationsRepository(): ModelTranslationsRepository
+    public function getTranslationsState(): ModelTranslationsState
     {
-        return app(ModelTranslationsRepository::class);
+        return $this->translationsState;
     }
 
     /**
      * Load and cache model translations for a specific locale.
      * 
      * @param string $locale
-     * @return void
+     * @return static
      */
     public function loadTranslations(string $locale)
     {
-        $this->cachedTranslations[$locale] = $this->translationsRepository()->getModelTranslationsForLocale($this->getMorphClass(), $this->getKey(), $locale);
+        if (! $this->getTranslationsState()->isLoaded($locale)) {
+            $this->getTranslationsState()->load($locale);
+        }
+
+        return $this;
     }
 
     /**
      * Load and cache model translations across all locales.
      * 
-     * @return void
+     * @return static
      */
     public function loadAllTranslations()
     {
-        $this->cachedTranslations = $this->translationsRepository()->getModelTranslations($this->getMorphClass(), $this->getKey());
+        if (! $this->getTranslationsState()->isAllLoaded()) {
+            $this->getTranslationsState()->loadAll();
+        }
+
+        return $this;
     }
 
     /**
@@ -266,22 +162,9 @@ trait HasTranslations
     {
         $locale = $locale ?? app()->currentLocale();
 
-        if (! array_key_exists($locale, $this->cachedTranslations)) {
-            $this->loadTranslations($locale);
-        }
+        $this->loadTranslations($locale);
 
-        $translation = null;
-
-        if (
-            array_key_exists($key, $this->cachedTranslationsToUpdate[$locale] ?? [])
-            || (! in_array($key, $this->cachedTranslationsToDelete[$locale] ?? [])
-                && ! in_array($key, $this->cachedTranslationsToFlush)
-                && ! in_array($locale, $this->cachedLocalesToFlush))
-        ) {
-            $translation = $this->cachedTranslationsToUpdate[$locale][$key]
-                ?? $this->cachedTranslations[$locale][$key]
-                ?? null;
-        }
+        $translation = $this->getTranslationsState()->get($key, $locale);
 
         if (is_null($translation)) {
             if ($fallback !== false) {
@@ -393,21 +276,7 @@ trait HasTranslations
 
         foreach ($value as $translationLocale => $translation) {
             if (! is_null($translation)) {
-                $this->cachedTranslationsToUpdate[$translationLocale][$key] = $translation;
-
-                if (isset($this->cachedTranslatables)) {
-                    if (! in_array($key, $this->cachedTranslatables)) {
-                        $this->cachedTranslatables[] = $key;
-                    }
-                }
-
-                if (array_key_exists($translationLocale, $this->cachedTranslationsToDelete)) {
-                    $translationKeyIndex = array_search($key, $this->cachedTranslationsToDelete[$translationLocale]);
-
-                    if ($translationKeyIndex !== false) {
-                        unset($this->cachedTranslationsToDelete[$translationLocale][$translationKeyIndex]);
-                    }
-                }
+                $this->getTranslationsState()->upsert($key, $translation, $translationLocale);
             } else {
                 $this->removeTranslation($key, $translationLocale);
             }
@@ -431,13 +300,13 @@ trait HasTranslations
      */
     protected function setAttributeNestingTranslatableAttributeValue(string $key, $value, ?string $locale)
     {
-        $toFlushTranslations = [];
+        $toDeleteKeys = [];
 
         collect($this->translatables())
             ->filter(static function (string $translatableKey) use ($key): bool {
                 return Str::startsWith($translatableKey, $key.'.');
             })
-            ->each(function (string $translatableKey) use ($key, &$value, $locale, &$toFlushTranslations): void {
+            ->each(function (string $translatableKey) use ($key, &$value, $locale, &$toDeleteKeys): void {
                 // Unlike `getAttributeNestingTranslatableAttributeValue()` method, we strip the full `$key.` prefix here
                 // instead of stopping at the first dot, since $key may itself be
                 // dot-notated from a "root->nested" attribute rather than a single segment.
@@ -450,7 +319,7 @@ trait HasTranslations
                     // Setting the nested translatable attribute to null as it should be represented in the database.
                     data_set($value, $nestedKey, null);
                 } else {
-                    $toFlushTranslations[] = $translatableKey;
+                    $toDeleteKeys[] = $translatableKey;
                 }
             });
 
@@ -458,19 +327,7 @@ trait HasTranslations
         // incoming payload structure, it means the user purposefully removed that entire 
         // structural block from the nesting attribute. Therefore, we must clean up and 
         // delete its existing translations across all locales to keep the data consistent.
-        if (filled($toFlushTranslations)) {
-            $this->cachedTranslationsToFlush = array_unique(array_merge($this->cachedTranslationsToFlush, $toFlushTranslations));
-
-            $flippedKeys = array_flip($toFlushTranslations);
-
-            foreach ($this->cachedTranslationsToUpdate as $translationsLocale => $translations) {
-                $this->cachedTranslationsToUpdate[$translationsLocale] = array_diff_key($translations, $flippedKeys);
-            }
-
-            foreach ($this->cachedTranslationsToDelete as $translationsLocale => $keys) {
-                $this->cachedTranslationsToDelete[$translationsLocale] = array_diff($keys, $toFlushTranslations);
-            }
-        }
+        $this->removeTranslationsForKeys($toDeleteKeys);
 
         return parent::setAttribute(str_replace('.', '->', $key), $value);
     }
@@ -486,35 +343,49 @@ trait HasTranslations
     {
         $locale = $locale ?? app()->currentLocale();
 
-        if (! in_array($key, $this->cachedTranslationsToDelete[$locale] ?? [])) {
-            $this->cachedTranslationsToDelete[$locale][] = $key;
-        }
-
-        unset($this->cachedTranslationsToUpdate[$locale][$key]);
+        $this->getTranslationsState()->delete($key, $locale);
 
         return $this;
     }
 
     /**
-     * Remove all translations for the given `$locale` or for all locales if `$locale` is `null`.
+     * Remove the entire translations for the given key(s).
      *
-     * @param string|null $locale
+     * @param array<string>|string $keys
      * @return static
      */
-    public function flushTranslations(?string $locale)
+    public function removeTranslationsForKeys($keys)
     {
-        if (! in_array($locale, $this->cachedLocalesToFlush)) {
-            $this->cachedLocalesToFlush[] = $locale;
+        if (filled($keys)) {
+            $this->getTranslationsState()->deleteKeys($keys);
         }
 
-        if (blank($locale)) {
-            $this->cachedTranslationsToUpdate = [];
-            $this->cachedTranslationsToDelete = [];
-            $this->cachedTranslationsToFlush = [];
-        } else {
-            unset($this->cachedTranslationsToUpdate[$locale]);
-            unset($this->cachedTranslationsToDelete[$locale]);
+        return $this;
+    }
+
+    /**
+     * Remove the entire translations for the given locale(s).
+     *
+     * @param array<string>|string $locales
+     * @return static
+     */
+    public function removeTranslationsForLocales($locales)
+    {
+        if (filled($locales)) {
+            $this->getTranslationsState()->deleteLocales($locales);
         }
+
+        return $this;
+    }
+
+    /**
+     * Remove all translations for the model, across all locale.
+     *
+     * @return static
+     */
+    public function flushAllTranslations()
+    {
+        $this->getTranslationsState()->flushAll();
 
         return $this;
     }
@@ -586,7 +457,7 @@ trait HasTranslations
     /**
      * A dot-notated array of the translatable attributes.
      * 
-     * @return array
+     * @return array<string>
      */
     public function translatables(): array
     {
@@ -597,8 +468,18 @@ trait HasTranslations
         return $this->cachedTranslatables = property_exists($this, 'translatables')
             ? $this->translatables
             : array_keys(array_merge(
-                Arr::collapse($this->cachedTranslationsToUpdate),
-                array_flip($this->translationsRepository()->getModelTranslatableAttributes($this->getMorphClass(), $this->getKey()))
+                Arr::collapse($this->getTranslationsState()->queuedUpserts()),
+                array_flip($this->discoverTranslatables())
             ));
+    }
+
+    /**
+     * Discover translatable attribute keys from existing translations in the database.
+     *
+     * @return array<string>
+     */
+    protected function discoverTranslatables(): array
+    {
+        return app(ModelTranslationsRepository::class)->getModelKeys($this->getMorphClass(), $this->getKey());
     }
 }

@@ -27,29 +27,6 @@ class ModelTranslationsRepository
     }
 
     /**
-     * Get all translatable attributes for the given translatable model.
-     *
-     * If no model ID is provided, translatable attributes from all instances of
-     * the given translatable model are returned.
-     *
-     * @param string $translatableType
-     * @param string|int|null $translatableId
-     * @return array<string>
-     */
-    public function getModelTranslatableAttributes(string $translatableType, $translatableId = null): array
-    {
-        return $this->table()
-            ->where(
-                blank($translatableId)
-                ? ['translatable_type' => $translatableType]
-                : ['translatable_type' => $translatableType, 'translatable_id' => $translatableId]
-            )
-            ->distinct()
-            ->pluck('key')
-            ->toArray();
-    }
-
-    /**
      * Get all translations for the given translatable model in a specific locale.
      * 
      * @param string $translatableType
@@ -82,6 +59,29 @@ class ModelTranslationsRepository
     }
 
     /**
+     * Get all translatable attributes for the given translatable model.
+     *
+     * If no model ID is provided, translatable attributes from all instances of
+     * the given translatable model are returned.
+     *
+     * @param string $translatableType
+     * @param string|int|null $translatableId
+     * @return array<string>
+     */
+    public function getModelKeys(string $translatableType, $translatableId = null): array
+    {
+        return $this->table()
+            ->where(
+                blank($translatableId)
+                ? ['translatable_type' => $translatableType]
+                : ['translatable_type' => $translatableType, 'translatable_id' => $translatableId]
+            )
+            ->distinct()
+            ->pluck('key')
+            ->toArray();
+    }
+
+    /**
      * Get all translation locales for the given translatable model.
      *
      * @param string $translatableType
@@ -97,98 +97,118 @@ class ModelTranslationsRepository
     }
 
     /**
-     * Upsert translations for the given translatable model in a specific locale; `null` values will delete the corresponding translation.
+     * Upsert translations for the given translatable model across one or more locales;
+     * `null` values will delete the corresponding translation.
      *
-     * @param array<string, string|null> $translations
      * @param string $translatableType
      * @param string|int $translatableId
-     * @param string $locale
+     * @param array<string, array<string, string|null>> $translations Keyed by locale, then by attribute key.
      * @return int
      */
-    public function upsertModelTranslationsForLocale(array $translations, string $translatableType, $translatableId, string $locale): int
+    public function upsertModelTranslations(string $translatableType, $translatableId, array $translations): int
     {
         $affectedRows = 0;
-
-        [$translations, $translationsToDelete] = collect($translations)->partition(
-            static function (?string $translation): bool {
-                return ! is_null($translation);
-            }
-        );
-
         $records = [];
+        $translationsToDelete = [];
+        $timestamp = Date::now();
 
-        foreach ($translations as $key => $value) {
-            $timestamp = Date::now();
+        foreach ($translations as $locale => $keyed) {
+            foreach ($keyed as $key => $value) {
+                if (is_null($value)) {
+                    $translationsToDelete[$locale][] = $key;
 
-            $records[] = [
-                'translatable_type' => $translatableType,
-                'translatable_id' => $translatableId,
-                'locale' => $locale,
-                'key' => $key,
-                'value' => $value,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ];
+                    continue;
+                }
+
+                $records[] = [
+                    'translatable_type' => $translatableType,
+                    'translatable_id' => $translatableId,
+                    'locale' => $locale,
+                    'key' => $key,
+                    'value' => $value,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
         }
 
-        $affectedRows += $this->table()
-            ->upsert(
-                $records,
-                ['translatable_type', 'translatable_id', 'locale', 'key'],
-                ['value', 'updated_at']
-            );
+        if (filled($records)) {
+            $affectedRows += $this->table()
+                ->upsert(
+                    $records,
+                    ['translatable_type', 'translatable_id', 'locale', 'key'],
+                    ['value', 'updated_at']
+                );
+        }
 
-        if ($translationsToDelete->isNotEmpty()) {
-            $affectedRows += $this->deleteModelTranslationsForLocale($translationsToDelete->keys()->toArray(), $translatableType, $translatableId, $locale);
+        if (filled($translationsToDelete)) {
+            $affectedRows += $this->deleteModelTranslations($translatableType, $translatableId, $translationsToDelete);
         }
 
         return $affectedRows;
     }
 
     /**
-     * Delete translations for the given translatable model in a specific locale.
+     * Delete translations for the given translatable model.
      *
-     * @param array<string> $keys
      * @param string $translatableType
      * @param string|int $translatableId
-     * @param string $locale
+     * @param array<string, array<string>> $translations Attribute keys keyed by locale
      * @return int
      */
-    public function deleteModelTranslationsForLocale(array $keys, string $translatableType, $translatableId, string $locale): int
+    public function deleteModelTranslations(string $translatableType, $translatableId, array $translations): int
     {
+        if (blank($translations = array_filter($translations))) {
+            return 0;
+        }
+
         return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', '=', $locale)
+            ->where(static function (Builder $query) use ($translations) {
+                foreach ($translations as $locale => $keys) {
+                    $query->orWhere(function (Builder $query) use ($locale, $keys) {
+                        $query->where('locale', $locale)
+                            ->whereIn('key', $keys);
+                    });
+                }
+            })
+            ->delete();
+    }
+
+    /**
+     * Delete translations for the given keys for the given translatable model, across all locales.
+     *
+     * @param string $translatableType
+     * @param string|int $translatableId
+     * @param array<string> $keys
+     * @return int
+     */
+    public function deleteModelKeys(string $translatableType, $translatableId, array $keys): int
+    {
+        if (blank($keys)) {
+            return 0;
+        }
+
+        return $this->modelTranslations($translatableType, $translatableId)
             ->whereIn('key', $keys)
             ->delete();
     }
 
     /**
-     * Delete all translations for the given translatable model in a specific locale.
+     * Delete all translations for the given translatable model in the given locales.
      *
      * @param string $translatableType
      * @param string|int $translatableId
-     * @param string $locale
+     * @param array<string> $locales
      * @return int
      */
-    public function deleteAllModelTranslationsForLocale(string $translatableType, $translatableId, string $locale): int
+    public function deleteModelLocales(string $translatableType, $translatableId, array $locales): int
     {
-        return $this->modelTranslations($translatableType, $translatableId)
-            ->where('locale', '=', $locale)
-            ->delete();
-    }
+        if (blank($locales)) {
+            return 0;
+        }
 
-    /**
-     * Delete translations for the given translatable model across all locales.
-     *
-     * @param array<string> $keys
-     * @param string $translatableType
-     * @param string|int $translatableId
-     * @return int
-     */
-    public function flushModelTranslations(array $keys, string $translatableType, $translatableId): int
-    {
         return $this->modelTranslations($translatableType, $translatableId)
-            ->whereIn('key', $keys)
+            ->whereIn('locale', $locales)
             ->delete();
     }
 
@@ -199,7 +219,7 @@ class ModelTranslationsRepository
      * @param string|int $translatableId
      * @return int
      */
-    public function flushAllModelTranslations(string $translatableType, $translatableId): int
+    public function flushModelTranslations(string $translatableType, $translatableId): int
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->delete();
