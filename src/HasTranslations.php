@@ -2,6 +2,8 @@
 
 namespace Alnaggar\TranslatableModel;
 
+use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
+use Alnaggar\TranslatableModel\FallbackStrategies\NoFallbackStrategy;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
@@ -90,7 +92,10 @@ trait HasTranslations
      */
     public function loadTranslations(string $locale)
     {
-        if (! $this->getTranslationsState()->isLoaded($locale)) {
+        if (
+            ! $this->getTranslationsState()->isAllLoaded()
+            && ! $this->getTranslationsState()->isLoaded($locale)
+        ) {
             $this->getTranslationsState()->load($locale);
         }
 
@@ -118,7 +123,7 @@ trait HasTranslations
     {
         if ($key !== $this->getKeyName()) {
             if ($this->isTranslatableAttribute($key)) {
-                return $this->getTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
+                return $this->getTranslatableAttributeValue($key, null, $this->getTranslationsDefaultFallbackStrategy());
             }
 
             if (
@@ -127,7 +132,7 @@ trait HasTranslations
                 // via a dot-notated string key (e.g. $model['address.city']).
                 && ! Str::contains($key, '.')
             ) {
-                return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior());
+                return $this->getAttributeNestingTranslatableAttributeValue($key, null, $this->getTranslationsDefaultFallbackStrategy());
             }
         }
 
@@ -139,15 +144,12 @@ trait HasTranslations
      * 
      * @param string $key
      * @param string|null $locale Translation locale, fallback to app locale if `null`
-     * @param string|bool|null $fallback Missing locale translation fallback behavior
-     * - `string` (locale) => fallback to that locale
-     * - `true`|`null` => fallback to app fallback locale
-     * - `false' => do not fallback to any locale
+     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for the given locale is missing
      * @return mixed
      */
-    public function getTranslation(string $key, ?string $locale = null, $fallback = null)
+    public function getTranslation(string $key, ?string $locale = null, $fallbackStrategy = null)
     {
-        return $this->getTranslatableAttributeValue($key, $locale, $fallback);
+        return $this->getTranslatableAttributeValue($key, $locale, $fallbackStrategy ?? $this->getTranslationsDefaultFallbackStrategy());
     }
 
     /**
@@ -155,28 +157,20 @@ trait HasTranslations
      * 
      * @param string $key
      * @param string|null $locale
-     * @param string|bool|null $fallback
+     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string $fallbackStrategy
      * @return string|null
      */
-    protected function getTranslatableAttributeValue(string $key, ?string $locale, $fallback): ?string
+    protected function getTranslatableAttributeValue(string $key, ?string $locale, $fallbackStrategy): ?string
     {
         $locale = $locale ?? app()->currentLocale();
+        $fallbackStrategy = FallbackStrategy::make($fallbackStrategy);
 
         $this->loadTranslations($locale);
 
-        $translation = $this->getTranslationsState()->get($key, $locale);
-
-        if (is_null($translation)) {
-            if ($fallback !== false) {
-                $fallback = is_string($fallback) ? $fallback : app()->getFallbackLocale();
-
-                if ($locale !== $fallback) {
-                    $translation = $this->getTranslatableAttributeValue($key, $fallback, false);
-                }
-            }
-        }
-
-        return $translation;
+        return $this->getTranslationsState()->get($key, $locale) ??
+            $fallbackStrategy->apply($this, $key, $locale, function (string $fallbackLocale) use ($key): ?string {
+                return $this->getTranslationsState()->get($key, $fallbackLocale);
+            });
     }
 
     /**
@@ -184,10 +178,10 @@ trait HasTranslations
      * 
      * @param string $key
      * @param string|null $locale
-     * @param string|bool|null $fallback
+     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string $fallbackStrategy
      * @return mixed
      */
-    protected function getAttributeNestingTranslatableAttributeValue(string $key, ?string $locale, $fallback)
+    protected function getAttributeNestingTranslatableAttributeValue(string $key, ?string $locale, $fallbackStrategy)
     {
         $attribute = parent::getAttributeValue($key);
 
@@ -195,8 +189,8 @@ trait HasTranslations
             ->filter(static function (string $translatableKey) use ($key): bool {
                 return Str::startsWith($translatableKey, $key.'.');
             })
-            ->each(function (string $translatableKey) use (&$attribute, $locale, $fallback): void {
-                $translation = $this->getTranslatableAttributeValue($translatableKey, $locale, $fallback);
+            ->each(function (string $translatableKey) use (&$attribute, $locale, $fallbackStrategy): void {
+                $translation = $this->getTranslatableAttributeValue($translatableKey, $locale, $fallbackStrategy);
                 $nestedKey = Str::after($translatableKey, '.');
 
                 data_set($attribute, $nestedKey, $translation);
@@ -215,7 +209,7 @@ trait HasTranslations
 
         foreach ($this->translatables() as $key) {
             if (! in_array(strstr($key, '.', true) ?: $key, $hiddenAttributes)) {
-                data_set($attributes, $key, $this->getTranslatableAttributeValue($key, null, $this->defaultFallbackBehavior()));
+                data_set($attributes, $key, $this->getTranslatableAttributeValue($key, null, $this->getTranslationsDefaultFallbackStrategy()));
             }
         }
 
@@ -356,9 +350,7 @@ trait HasTranslations
      */
     public function removeTranslationsForKeys($keys)
     {
-        if (filled($keys)) {
-            $this->getTranslationsState()->deleteKeys($keys);
-        }
+        $this->getTranslationsState()->deleteKeys($keys);
 
         return $this;
     }
@@ -371,9 +363,7 @@ trait HasTranslations
      */
     public function removeTranslationsForLocales($locales)
     {
-        if (filled($locales)) {
-            $this->getTranslationsState()->deleteLocales($locales);
-        }
+        $this->getTranslationsState()->deleteLocales($locales);
 
         return $this;
     }
@@ -399,7 +389,7 @@ trait HasTranslations
      */
     public function hasTranslation(string $key, ?string $locale = null): bool
     {
-        return ! is_null($this->getTranslatableAttributeValue($key, $locale, false));
+        return ! is_null($this->getTranslatableAttributeValue($key, $locale, NoFallbackStrategy::class));
     }
 
     /**
@@ -437,21 +427,29 @@ trait HasTranslations
      */
     protected function shouldFlushTranslationsOnSoftDelete(): bool
     {
-        return config('translatable-model.flush_translations_on_soft_delete', false);
+        static $shouldFlushTranslationsOnSoftDelete = config('translatable-model.flush_translations_on_soft_delete', false);
+
+        return $shouldFlushTranslationsOnSoftDelete;
     }
 
     /**
-     * Get the default missing translation fallback behavior.
+     * Get the default missing translation fallback strategy.
      * 
-     * @return string|bool|null
+     * @return \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy
      */
-    protected function defaultFallbackBehavior()
+    protected function getTranslationsDefaultFallbackStrategy(): FallbackStrategy
     {
-        static $defaultFallbackBehavior = property_exists($this, 'defaultFallbackBehavior')
-            ? $this->defaultFallbackBehavior
-            : config('translatable-model.fallback_behavior');
+        static $defaultFallbackStrategy;
 
-        return $defaultFallbackBehavior;
+        if (! isset($defaultFallbackStrategy)) {
+            $defaultFallbackStrategy = FallbackStrategy::make(
+                property_exists($this, 'defaultTranslationsFallbackStrategy')
+                ? $this->defaultTranslationsFallbackStrategy
+                : config('translatable-model.fallback_strategy')
+            );
+        }
+
+        return $defaultFallbackStrategy;
     }
 
     /**
