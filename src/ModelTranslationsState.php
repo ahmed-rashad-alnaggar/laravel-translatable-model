@@ -140,8 +140,10 @@ class ModelTranslationsState
     {
         $loadedTranslations = $this->isFlushAllQueued ? [] : array_diff_key($this->translations, $this->toDeleteLocales);
 
-        foreach ($loadedTranslations as $translationsLocale => $translations) {
-            $loadedTranslations[$translationsLocale] = array_diff_key($translations, $this->toDeleteKeys, $this->toDelete[$translationsLocale] ?? []);
+        if (filled($this->toDelete) || filled($this->toDeleteKeys)) {
+            foreach ($loadedTranslations as $translationsLocale => $translations) {
+                $loadedTranslations[$translationsLocale] = array_diff_key($translations, $this->toDeleteKeys, $this->toDelete[$translationsLocale] ?? []);
+            }
         }
 
         return array_filter(array_replace_recursive($loadedTranslations, $this->toUpsert), 'filled');
