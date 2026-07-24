@@ -10,15 +10,15 @@ use Illuminate\Support\Str;
 class TranslatableQueryBuilder extends Builder
 {
     /**
-     * The model that owns this query builder.
-     *
+     * The translatable model being queried.
+     * 
      * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations
      */
     protected $translatableModel;
 
     /**
-     * Set the translatable model this builder is querying for.
-     *
+     * Set the translatable model being queried.
+     * 
      * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
      * @return static
      */
@@ -37,7 +37,8 @@ class TranslatableQueryBuilder extends Builder
         if (
             is_string($column)
             // Laravel doesn't support querying nested attributes
-            // via a dot-notated string key (e.g. ->where('address.city')).
+            // via a dot-notated string key (e.g. ->where('address.city')),
+            // so do not handle it either.
             && ! Str::contains($column, '.')
         ) {
             $normalizedKey = str_replace('->', '.', $column);
@@ -45,7 +46,7 @@ class TranslatableQueryBuilder extends Builder
             if ($this->translatableModel->isTranslatableAttribute($normalizedKey)) {
                 $this->joinTranslation($normalizedKey);
 
-                return parent::where(...([$this->getQualifiedTranslationValueColumnForKey($normalizedKey)] + func_get_args()));
+                return parent::where(...([$this->getQualifiedTranslationValueColumn($normalizedKey)] + func_get_args()));
             }
         }
 
@@ -57,16 +58,13 @@ class TranslatableQueryBuilder extends Builder
      */
     public function orderBy($column, $direction = 'asc')
     {
-        if (
-            is_string($column)
-            && ! Str::contains($column, '.')
-        ) {
+        if (is_string($column) && ! Str::contains($column, '.')) {
             $normalizedKey = str_replace('->', '.', $column);
 
             if ($this->translatableModel->isTranslatableAttribute($normalizedKey)) {
                 $this->joinTranslation($normalizedKey);
 
-                return parent::orderBy($this->getQualifiedTranslationValueColumnForKey($normalizedKey), $direction);
+                return parent::orderBy($this->getQualifiedTranslationValueColumn($normalizedKey), $direction);
             }
         }
 
@@ -74,18 +72,51 @@ class TranslatableQueryBuilder extends Builder
     }
 
     /**
-     * Left-join `model_translations` for the given key/locale, so it can
-     * be referenced by `where()` / `orderBy()` dependent clauses.
+     * {@inheritDoc}
+     */
+    public function pluck($column, $key = null)
+    {
+        return parent::pluck(
+            $this->resolvePluckColumn($column),
+            $this->resolvePluckColumn($key)
+        );
+    }
+
+    /**
+     * Resolve a pluck column, attaching translation joins if necessary.
+     * 
+     * @param \Illuminate\Database\Query\Expression|string|null $column
+     * @return \Illuminate\Database\Query\Expression|string|null
+     * @internal
+     */
+    protected function resolvePluckColumn($column)
+    {
+        if (
+            is_string($column)
+            && ! Str::contains($column, '.')
+            && $this->translatableModel->isTranslatableAttribute($column)
+        ) {
+            $this->joinTranslation($column);
+
+            return $this->getQualifiedTranslationValueColumn($column)." as {$column}";
+        }
+
+        return $column;
+    }
+
+    /**
+     * Left-join the translation record for the given key and locale.
      *
-     * @param string $translationKey
+     * @param string $key
      * @param string|null $locale Defaults to the current app locale.
      * @return void
      */
-    public function joinTranslation(string $translationKey, ?string $locale = null): void
+    public function joinTranslation(string $key, ?string $locale = null): void
     {
-        $translationsTableAlias = $this->getTranslationsTableAliasForKey($translationKey);
+        $locale = $locale ?? app()->currentLocale();
+        $translationsTableAlias = $this->getTranslationsTableAlias($key, $locale);
 
-        if ($this->hasJoinedTranslationsTableForKey($translationKey)) {
+        if ($this->hasJoinedTranslation($key, $locale)) {
             // Reuse the existing join for repeated constraints on the same key.
             return;
         }
@@ -93,38 +124,39 @@ class TranslatableQueryBuilder extends Builder
         $modelTable = $this->translatableModel->getTable();
         $modelPrimaryKeyName = $this->translatableModel->getKeyName();
         $modelMorphClass = $this->translatableModel->getMorphClass();
-        $locale = $locale ?? app()->currentLocale();
 
-        $this->leftJoin("model_translations as {$translationsTableAlias}", static function (JoinClause $join) use ($translationsTableAlias, $modelTable, $modelPrimaryKeyName, $modelMorphClass, $translationKey, $locale) {
+        $this->leftJoin("model_translations as {$translationsTableAlias}", static function (JoinClause $join) use ($translationsTableAlias, $modelTable, $modelPrimaryKeyName, $modelMorphClass, $key, $locale) {
             $join->on("{$translationsTableAlias}.translatable_id", '=', $modelTable.'.'.$modelPrimaryKeyName)
                 ->where("{$translationsTableAlias}.translatable_type", '=', $modelMorphClass)
-                ->where("{$translationsTableAlias}.key", '=', $translationKey)
+                ->where("{$translationsTableAlias}.key", '=', $key)
                 ->where("{$translationsTableAlias}.locale", '=', $locale);
         });
     }
 
     /**
-     * Get the fully qualified `value` column for the translation join
-     * corresponding to the given key.
+     * Get the fully qualified `value` column for the translation record join for the given key and locale.
      * 
      * @param string $key
+     * @param string|null $locale Defaults to the current app locale.
      * @return string
      */
-    public function getQualifiedTranslationValueColumnForKey(string $key): string
+    public function getQualifiedTranslationValueColumn(string $key, ?string $locale = null): string
     {
-        return $this->getTranslationsTableAliasForKey($key).'.value';
+        $locale = $locale ?? app()->currentLocale();
+
+        return $this->getTranslationsTableAlias($key, $locale).'.value';
     }
 
     /**
-     * Determine whether the translations table has already been joined
-     * for the given translation key.
+     * Determine whether the translation record has already been joined for the given key and locale.
      * 
      * @param string $key
+     * @param string $locale
      * @return bool
      */
-    protected function hasJoinedTranslationsTableForKey(string $key): bool
+    protected function hasJoinedTranslation(string $key, string $locale): bool
     {
-        $tableAlias = $this->getTranslationsTableAliasForKey($key);
+        $tableAlias = $this->getTranslationsTableAlias($key, $locale);
 
         foreach ((array) $this->joins as $join) {
             if ($join->table === "model_translations as {$tableAlias}") {
@@ -136,15 +168,15 @@ class TranslatableQueryBuilder extends Builder
     }
 
     /**
-     * Get the deterministic table alias used for joins of the given
-     * translation key.
+     * Get the deterministic table alias used for joining the translation record for the given key and locale.
      * 
      * @param string $key
+     * @param string $locale
      * @return string
      */
-    protected function getTranslationsTableAliasForKey(string $key): string
+    protected function getTranslationsTableAlias(string $key, string $locale): string
     {
-        return 't_'.substr(md5($key), 0, 12);
+        return 't_'.substr(md5("{$key}.{$locale}"), 0, 12);
     }
 
     /**
