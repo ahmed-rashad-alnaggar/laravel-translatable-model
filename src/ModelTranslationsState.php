@@ -103,6 +103,22 @@ class ModelTranslationsState
     }
 
     /**
+     * Get cached translations without applying pending changes. Use `all()` or `forLocale()`
+     * for resolved translations that reflect queued upserts/deletes/flush.
+     *
+     * @param string|null $locale
+     * @return array<string, array<string, string>>|array<string, string> Translations keyed by locale then attribute key, or by attribute key alone if a locale is given
+     */
+    public function getLoaded(?string $locale = null): array
+    {
+        if (filled($locale)) {
+            return $this->translations[$locale] ?? [];
+        }
+
+        return $this->translations;
+    }
+
+    /**
      * Resolve a translation from cache, respecting queued upserts/deletes/flush.
      * Returns `null` if the key has no resolvable value for the given locale.
      * 
