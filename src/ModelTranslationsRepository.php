@@ -158,7 +158,7 @@ class ModelTranslationsRepository
      */
     public function deleteModelTranslations(string $translatableType, $translatableId, array $translations): int
     {
-        if (blank($translations = array_filter($translations))) {
+        if (blank($translations)) {
             return 0;
         }
 

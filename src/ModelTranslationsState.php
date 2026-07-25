@@ -250,7 +250,7 @@ class ModelTranslationsState
      */
     public function queuedDeletes(): array
     {
-        return array_map('array_keys', $this->toDelete);
+        return array_filter(array_map('array_keys', $this->toDelete));
     }
 
     /**
