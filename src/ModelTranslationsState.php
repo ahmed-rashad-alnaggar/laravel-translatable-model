@@ -107,7 +107,7 @@ class ModelTranslationsState
      * for resolved translations that reflect queued upserts/deletes/flush.
      *
      * @param string|null $locale
-     * @return array<string, array<string, string>>|array<string, string> Translations keyed by locale then attribute key, or by attribute key alone if a locale is given
+     * @return ($locale is null ? array<string, array<string, string>> : array<string, string>) Translations keyed by locale then attribute key, or by attribute key alone if a locale is given
      */
     public function getLoaded(?string $locale = null): array
     {
@@ -141,7 +141,7 @@ class ModelTranslationsState
             return null;
         }
 
-        return $this->translations[$locale][$key] ?? null;
+        return $this->getLoaded($locale)[$key] ?? null;
     }
 
     /**
@@ -154,7 +154,7 @@ class ModelTranslationsState
      */
     public function all(): array
     {
-        $loadedTranslations = $this->isFlushAllQueued ? [] : array_diff_key($this->translations, $this->toDeleteLocales);
+        $loadedTranslations = $this->isFlushAllQueued ? [] : array_diff_key($this->getLoaded(), $this->toDeleteLocales);
 
         if (filled($this->toDelete) || filled($this->toDeleteKeys)) {
             foreach ($loadedTranslations as $translationsLocale => $translations) {
@@ -193,7 +193,7 @@ class ModelTranslationsState
         $loadedTranslations = [];
 
         if (! $this->isFlushAllQueued && ! isset($this->toDeleteKeys[$key])) {
-            foreach ($this->translations as $translationsLocale => $translations) {
+            foreach ($this->getLoaded() as $translationsLocale => $translations) {
                 if (
                     isset($translations[$key])
                     && ! isset($this->toDeleteLocales[$translationsLocale])
@@ -226,7 +226,7 @@ class ModelTranslationsState
     public function forLocale(string $locale): array
     {
         $loadedTranslations = $this->isFlushAllQueued ? [] :
-            (isset($this->toDeleteLocales[$locale]) ? [] : ($this->translations[$locale] ?? []));
+            (isset($this->toDeleteLocales[$locale]) ? [] : ($this->getLoaded($locale)));
 
         $loadedTranslations = array_diff_key($loadedTranslations, $this->toDeleteKeys, $this->toDelete[$locale] ?? []);
 
@@ -384,7 +384,7 @@ class ModelTranslationsState
      */
     public function isLoaded(string $locale): bool
     {
-        return array_key_exists($locale, $this->translations);
+        return array_key_exists($locale, $this->getLoaded());
     }
 
     /**
