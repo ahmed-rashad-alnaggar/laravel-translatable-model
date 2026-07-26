@@ -103,13 +103,32 @@ class ModelTranslationsState
     }
 
     /**
-     * Get cached translations without applying pending changes. Use `all()` or `forLocale()`
-     * for resolved translations that reflect queued upserts/deletes/flush.
+     * Get the cached translation for the given key and locale, ignoring any queued upserts/deletes/flush.
+     * Use `get()` for the resolved value that reflects pending changes.
+     *
+     * Only reflects the database if the locale has been loaded via `load()` or `loadAll()` first
+     * (see `isLoaded()` and `isAllLoaded()`); otherwise returns `null` regardless of what's in the database.
+     *
+     * @param string $key
+     * @param string $locale
+     * @return string|null
+     */
+    public function original(string $key, string $locale): ?string
+    {
+        return $this->originals($locale)[$key] ?? null;
+    }
+
+    /**
+     * Get all cached translations, ignoring any queued upserts/deletes/flush.
+     * Use `all()` or `forLocale()` for resolved translations that reflect pending changes.
+     *
+     * Only reflects every locale and key in the database if `loadAll()` has been called first
+     * (see `isAllLoaded()`); otherwise limited to locales and keys individually loaded.
      *
      * @param string|null $locale
      * @return ($locale is null ? array<string, array<string, string>> : array<string, string>) Translations keyed by locale then attribute key, or by attribute key alone if a locale is given
      */
-    public function getLoaded(?string $locale = null): array
+    public function originals(?string $locale = null): array
     {
         if (filled($locale)) {
             return $this->translations[$locale] ?? [];
@@ -121,6 +140,9 @@ class ModelTranslationsState
     /**
      * Resolve a translation from cache, respecting queued upserts/deletes/flush.
      * Returns `null` if the key has no resolvable value for the given locale.
+     * 
+     * Only reflects the database if the locale has been loaded via `load()` or `loadAll()` first
+     * (see `isLoaded()` and `isAllLoaded()`); otherwise limited to a queued upsert for the key.
      * 
      * @param string $key
      * @param string $locale
@@ -141,7 +163,7 @@ class ModelTranslationsState
             return null;
         }
 
-        return $this->getLoaded($locale)[$key] ?? null;
+        return $this->original($key, $locale);
     }
 
     /**
@@ -154,7 +176,7 @@ class ModelTranslationsState
      */
     public function all(): array
     {
-        $loadedTranslations = $this->isFlushAllQueued ? [] : array_diff_key($this->getLoaded(), $this->toDeleteLocales);
+        $loadedTranslations = $this->isFlushAllQueued ? [] : array_diff_key($this->originals(), $this->toDeleteLocales);
 
         if (filled($this->toDelete) || filled($this->toDeleteKeys)) {
             foreach ($loadedTranslations as $translationsLocale => $translations) {
@@ -193,7 +215,7 @@ class ModelTranslationsState
         $loadedTranslations = [];
 
         if (! $this->isFlushAllQueued && ! isset($this->toDeleteKeys[$key])) {
-            foreach ($this->getLoaded() as $translationsLocale => $translations) {
+            foreach ($this->originals() as $translationsLocale => $translations) {
                 if (
                     isset($translations[$key])
                     && ! isset($this->toDeleteLocales[$translationsLocale])
@@ -226,7 +248,7 @@ class ModelTranslationsState
     public function forLocale(string $locale): array
     {
         $loadedTranslations = $this->isFlushAllQueued ? [] :
-            (isset($this->toDeleteLocales[$locale]) ? [] : ($this->getLoaded($locale)));
+            (isset($this->toDeleteLocales[$locale]) ? [] : ($this->originals($locale)));
 
         $loadedTranslations = array_diff_key($loadedTranslations, $this->toDeleteKeys, $this->toDelete[$locale] ?? []);
 
@@ -384,14 +406,11 @@ class ModelTranslationsState
      */
     public function isLoaded(string $locale): bool
     {
-        return array_key_exists($locale, $this->getLoaded());
+        return array_key_exists($locale, $this->originals());
     }
 
     /**
-     * Determine whether translations for every locale have been fetched via `loadAll()`,
-     * meaning `all()`, `locales()`, `forKey()`, and `forLocale()` are guaranteed
-     * to reflect the complete database state rather than just what's been
-     * individually loaded or queued.
+     * Determine whether translations for every locale have been loaded into the cache.
      * 
      * @return bool
      */
