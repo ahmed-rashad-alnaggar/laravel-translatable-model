@@ -88,6 +88,32 @@ trait HasTranslations
     /**
      * {@inheritDoc}
      */
+    protected function getClassCastableAttributeValue($key, $value)
+    {
+        if (
+            TranslatableModel::isTranslationsDisabled()
+            || (! $this->isTranslatableAttribute($key) && ! $this->isNestingTranslatableAttributes($key))
+        ) {
+            return parent::getClassCastableAttributeValue($key, $value);
+        }
+
+        // $value already reflects the resolved translation or the nested merge.
+        // Some casts (e.g. AsCollection) ignore it and re-read $attributes[$key]
+        // directly, so that slot must hold it too, not just the argument.
+        $attribute = $this->attributes[$key];
+
+        $this->attributes[$key] = $value;
+
+        $returnValue = parent::getClassCastableAttributeValue($key, $value);
+
+        $this->attributes[$key] = $attribute;
+
+        return $returnValue;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function setAttribute($key, $value)
     {
         if (TranslatableModel::isTranslationsDisabled()) {
