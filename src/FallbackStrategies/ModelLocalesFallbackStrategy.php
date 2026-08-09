@@ -11,20 +11,17 @@ class ModelLocalesFallbackStrategy extends FallbackStrategy
      *
      * @var array<string>
      */
-    protected $locales;
+    protected array $locales;
 
     /**
      * {@inheritDoc}
      */
-    protected function fallbackLocales(Model $model, string $key, string $locale): array
+    protected function fallbackLocales(Model $model, string $key, string $requestedLocale): array
     {
         if (isset($this->locales)) {
             return $this->locales;
         }
 
-        return $this->locales = array_unique(array_merge(
-            [app()->getFallbackLocale()],
-            $model->loadAllTranslations()->getTranslationsState()->locales()
-        ));
+        return $this->locales = $model->loadAllTranslations()->getTranslationsState()->locales();
     }
 }

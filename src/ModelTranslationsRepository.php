@@ -10,14 +10,14 @@ class ModelTranslationsRepository
 {
     /**
      * The database connection instance.
-     * 
+     *
      * @var \Illuminate\Database\ConnectionInterface
      */
-    protected $connection;
+    protected ConnectionInterface $connection;
 
     /**
      * Create a new instance.
-     * 
+     *
      * @param \Illuminate\Database\ConnectionInterface $connection
      * @return void
      */
@@ -28,13 +28,13 @@ class ModelTranslationsRepository
 
     /**
      * Get all translations for the given translatable model in a specific locale.
-     * 
+     *
      * @param string $translatableType
      * @param string|int $translatableId
      * @param string $locale
      * @return array<string, string>
      */
-    public function getModelTranslationsForLocale(string $translatableType, $translatableId, string $locale): array
+    public function getModelTranslationsForLocale(string $translatableType, string|int $translatableId, string $locale): array
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->where('locale', '=', $locale)
@@ -44,12 +44,12 @@ class ModelTranslationsRepository
 
     /**
      * Get all translations for the given translatable model across all locales.
-     * 
+     *
      * @param string $translatableType
      * @param string|int $translatableId
      * @return array<string, array<string, string>>
      */
-    public function getModelTranslations(string $translatableType, $translatableId): array
+    public function getModelTranslations(string $translatableType, string|int $translatableId): array
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->get(['locale', 'key', 'value'])
@@ -68,7 +68,7 @@ class ModelTranslationsRepository
      * @param string|int|null $translatableId
      * @return array<string>
      */
-    public function getModelKeys(string $translatableType, $translatableId = null): array
+    public function getModelKeys(string $translatableType, string|int|null $translatableId = null): array
     {
         return $this->table()
             ->where(
@@ -88,7 +88,7 @@ class ModelTranslationsRepository
      * @param string|int $translatableId
      * @return array<string>
      */
-    public function getModelLocales(string $translatableType, $translatableId): array
+    public function getModelLocales(string $translatableType, string|int $translatableId): array
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->distinct()
@@ -105,7 +105,7 @@ class ModelTranslationsRepository
      * @param array<string, array<string, string|null>> $translations Keyed by locale, then by attribute key.
      * @return int
      */
-    public function upsertModelTranslations(string $translatableType, $translatableId, array $translations): int
+    public function upsertModelTranslations(string $translatableType, string|int $translatableId, array $translations): int
     {
         $affectedRows = 0;
         $records = [];
@@ -156,7 +156,7 @@ class ModelTranslationsRepository
      * @param array<string, array<string>> $translations Attribute keys keyed by locale
      * @return int
      */
-    public function deleteModelTranslations(string $translatableType, $translatableId, array $translations): int
+    public function deleteModelTranslations(string $translatableType, string|int $translatableId, array $translations): int
     {
         if (blank($translations)) {
             return 0;
@@ -182,7 +182,7 @@ class ModelTranslationsRepository
      * @param array<string> $keys
      * @return int
      */
-    public function deleteModelKeys(string $translatableType, $translatableId, array $keys): int
+    public function deleteModelKeys(string $translatableType, string|int $translatableId, array $keys): int
     {
         if (blank($keys)) {
             return 0;
@@ -201,7 +201,7 @@ class ModelTranslationsRepository
      * @param array<string> $locales
      * @return int
      */
-    public function deleteModelLocales(string $translatableType, $translatableId, array $locales): int
+    public function deleteModelLocales(string $translatableType, string|int $translatableId, array $locales): int
     {
         if (blank($locales)) {
             return 0;
@@ -219,7 +219,7 @@ class ModelTranslationsRepository
      * @param string|int $translatableId
      * @return int
      */
-    public function flushModelTranslations(string $translatableType, $translatableId): int
+    public function flushModelTranslations(string $translatableType, string|int $translatableId): int
     {
         return $this->modelTranslations($translatableType, $translatableId)
             ->delete();
@@ -245,7 +245,7 @@ class ModelTranslationsRepository
      * @param string|int $translatableId
      * @return \Illuminate\Database\Query\Builder
      */
-    public function modelTranslations(string $translatableType, $translatableId): Builder
+    public function modelTranslations(string $translatableType, string|int $translatableId): Builder
     {
         return $this->table()
             ->where([

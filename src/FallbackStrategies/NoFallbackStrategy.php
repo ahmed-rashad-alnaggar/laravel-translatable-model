@@ -9,7 +9,7 @@ class NoFallbackStrategy extends FallbackStrategy
     /**
      * {@inheritDoc}
      */
-    protected function fallbackLocales(Model $model, string $key, string $locale): array
+    protected function fallbackLocales(Model $model, string $key, string $requestedLocale): array
     {
         return [];
     }

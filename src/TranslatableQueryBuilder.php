@@ -5,20 +5,19 @@ namespace Alnaggar\TranslatableModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
-use Illuminate\Support\Str;
 
 class TranslatableQueryBuilder extends Builder
 {
     /**
      * The translatable model being queried.
-     * 
+     *
      * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations
      */
-    protected $translatableModel;
+    protected Model $translatableModel;
 
     /**
      * Set the translatable model being queried.
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
      * @return static
      */
@@ -34,23 +33,19 @@ class TranslatableQueryBuilder extends Builder
      */
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
-        if (
-            is_string($column)
-            // Laravel doesn't support querying nested attributes
-            // via a dot-notated string key (e.g. ->where('address.city')),
-            // so do not handle it either.
-            && ! Str::contains($column, '.')
-        ) {
-            $normalizedKey = str_replace('->', '.', $column);
+        $column = $this->resolveQueryColumn($column);
 
-            if ($this->translatableModel->isTranslatableAttribute($normalizedKey)) {
-                $this->joinTranslation($normalizedKey);
+        return parent::where(...([$column] + func_get_args()));
+    }
 
-                return parent::where(...([$this->getQualifiedTranslationValueColumn($normalizedKey)] + func_get_args()));
-            }
-        }
+    /**
+     * {@inheritDoc}
+     */
+    public function whereIn($column, $values, $boolean = 'and', $not = false)
+    {
+        $column = $this->resolveQueryColumn($column);
 
-        return parent::where(...func_get_args());
+        return parent::whereIn($column, $values, $boolean, $not);
     }
 
     /**
@@ -58,15 +53,7 @@ class TranslatableQueryBuilder extends Builder
      */
     public function orderBy($column, $direction = 'asc')
     {
-        if (is_string($column) && ! Str::contains($column, '.')) {
-            $normalizedKey = str_replace('->', '.', $column);
-
-            if ($this->translatableModel->isTranslatableAttribute($normalizedKey)) {
-                $this->joinTranslation($normalizedKey);
-
-                return parent::orderBy($this->getQualifiedTranslationValueColumn($normalizedKey), $direction);
-            }
-        }
+        $column = $this->resolveQueryColumn($column);
 
         return parent::orderBy($column, $direction);
     }
@@ -83,32 +70,66 @@ class TranslatableQueryBuilder extends Builder
     }
 
     /**
-     * Resolve a pluck column, attaching translation joins if necessary.
-     * 
-     * @param \Illuminate\Database\Query\Expression|string|null $column
-     * @return \Illuminate\Database\Query\Expression|string|null
-     * @internal
+     * Resolve a query column, joining its translation — for the current app locale —
+     * when it is a literal translatable attribute.
+     *
+     * @param mixed $column
+     * @return mixed
      */
-    protected function resolvePluckColumn($column)
+    protected function resolveQueryColumn(mixed $column): mixed
     {
         if (
-            is_string($column)
-            && ! Str::contains($column, '.')
-            && $this->translatableModel->isTranslatableAttribute($column)
+            ! is_string($column)
+            // Laravel doesn't support querying nested attributes
+            // via a dot-notated key (e.g. $model->where('city.name')),
+            // so do not handle it either.
+            || str_contains($column, '.')
         ) {
-            $this->joinTranslation($column);
-
-            return $this->getQualifiedTranslationValueColumn($column)." as {$column}";
+            return $column;
         }
 
-        return $column;
+        // Laravel supports querying nested attributes
+        // via a JSON selector key (e.g. $model->where('city->name')).
+        $normalizedKey = str_replace('->', '.', $column);
+
+        if (! isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$normalizedKey])) {
+            return $column;
+        }
+
+        $this->joinTranslation($normalizedKey);
+
+        return $this->getQualifiedTranslationValueColumn($normalizedKey);
+    }
+
+    /**
+     * Resolve a pluck column, joining its translation — for the current app locale —
+     * when it is a translatable **column**.
+     *
+     * @param mixed $column
+     * @return mixed
+     */
+    protected function resolvePluckColumn(mixed $column): mixed
+    {
+        if (
+            ! is_string($column)
+            // Laravel's pluck does not support dot-notated or JSON selector keys.
+            || str_contains($column, '.')
+            || str_contains($column, '->')
+            || ! isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$column])
+        ) {
+            return $column;
+        }
+
+        $this->joinTranslation($column);
+
+        return $this->getQualifiedTranslationValueColumn($column)." as {$column}";
     }
 
     /**
      * Left-join the translation record for the given key and locale.
      *
      * @param string $key
-     * @param string|null $locale Defaults to the current app locale.
+     * @param string|null $locale Translation locale; defaults to app locale.
      * @return void
      */
     public function joinTranslation(string $key, ?string $locale = null): void
@@ -135,9 +156,9 @@ class TranslatableQueryBuilder extends Builder
 
     /**
      * Get the fully qualified `value` column for the translation record join for the given key and locale.
-     * 
+     *
      * @param string $key
-     * @param string|null $locale Defaults to the current app locale.
+     * @param string|null $locale Translation locale; defaults to app locale.
      * @return string
      */
     public function getQualifiedTranslationValueColumn(string $key, ?string $locale = null): string
@@ -149,7 +170,7 @@ class TranslatableQueryBuilder extends Builder
 
     /**
      * Determine whether the translation record has already been joined for the given key and locale.
-     * 
+     *
      * @param string $key
      * @param string $locale
      * @return bool
@@ -169,14 +190,14 @@ class TranslatableQueryBuilder extends Builder
 
     /**
      * Get the deterministic table alias used for joining the translation record for the given key and locale.
-     * 
+     *
      * @param string $key
      * @param string $locale
      * @return string
      */
     protected function getTranslationsTableAlias(string $key, string $locale): string
     {
-        return 't_'.substr(md5("{$key}.{$locale}"), 0, 12);
+        return 't_'.crc32("{$key}.{$locale}");
     }
 
     /**

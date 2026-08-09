@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class DedicatedLocaleFallbackStrategy extends FallbackStrategy
 {
     /**
-     * The locale to fallback to.
+     * The locale to fall back to.
      *
      * @var string
      */
-    protected $locale;
+    protected string $locale;
 
     /**
      * Create a new instance.
-     * 
+     *
      * @param string $locale
      * @return void
      */
@@ -27,7 +27,7 @@ class DedicatedLocaleFallbackStrategy extends FallbackStrategy
     /**
      * {@inheritDoc}
      */
-    protected function fallbackLocales(Model $model, string $key, string $locale): array
+    protected function fallbackLocales(Model $model, string $key, string $requestedLocale): array
     {
         return [$this->locale];
     }

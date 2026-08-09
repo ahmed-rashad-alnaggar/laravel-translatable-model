@@ -15,9 +15,9 @@ return new class extends Migration
     {
         Schema::create('model_translations', function (Blueprint $table) {
             $table->string('translatable_type', 100);
-            $table->string('translatable_id', 100); // A string for numaric/string ids
+            $table->string('translatable_id', 36); // A string for numaric/string ids
             $table->string('locale', 10);
-            $table->string('key', 100);
+            $table->string('key', 255);
             $table->text('value');
             $table->timestamps();
 

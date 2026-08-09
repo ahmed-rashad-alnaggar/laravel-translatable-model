@@ -28,7 +28,7 @@ return [
     |
     | - "ClassName:arg1,arg2"
     |     A strategy class-string with constructor arguments,
-    |     e.g. DedicatedLocaleFallbackStrategy::class.':en' to fallback to 'en'.
+    |     e.g. DedicatedLocaleFallbackStrategy::class.':en' to fall back to 'en'.
     |
     */
     'fallback_strategy' => \Alnaggar\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy::class,

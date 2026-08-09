@@ -8,63 +8,63 @@ class ModelTranslationsState
 {
     /**
      * The owning model instance.
-     * 
+     *
      * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations
      */
-    protected $model;
+    protected Model $model;
 
     /**
      * Cached translations, keyed by locale then attribute key.
      *
      * @var array<string, array<string, string>>
      */
-    protected $translations = [];
+    protected array $translations = [];
 
     /**
      * Translations queued for upsert on commit, keyed by locale then attribute key.
      *
      * @var array<string, array<string, string>>
      */
-    protected $toUpsert = [];
+    protected array $toUpsert = [];
 
     /**
      * Attribute keys queued for deletion on commit, keyed by locale then attribute key (a membership set).
      *
      * @var array<string, array<string, true>>
      */
-    protected $toDelete = [];
+    protected array $toDelete = [];
 
     /**
      * Attribute keys queued to be deleted entirely on commit (a membership set).
      *
      * @var array<string, true>
      */
-    protected $toDeleteKeys = [];
+    protected array $toDeleteKeys = [];
 
     /**
      * Locales queued to be deleted entirely on commit (a membership set).
      *
      * @var array<string, true>
      */
-    protected $toDeleteLocales = [];
+    protected array $toDeleteLocales = [];
 
     /**
      * Whether a full flush has been queued.
-     * 
+     *
      * @var bool
      */
-    protected $isFlushAllQueued = false;
+    protected bool $isFlushAllQueued = false;
 
     /**
      * Whether translations for every locale have been fetched.
-     * 
+     *
      * @var bool
      */
-    protected $isAllLoaded = false;
+    protected bool $isAllLoaded = false;
 
     /**
      * Create a new instance.
-     * 
+     *
      * @param \Illuminate\Database\Eloquent\Model $model
      * @return void
      */
@@ -79,7 +79,7 @@ class ModelTranslationsState
      * @param string $locale
      * @return static
      */
-    public function load(string $locale)
+    public function load(string $locale): static
     {
         $this->translations[$locale] =
             app(ModelTranslationsRepository::class)->getModelTranslationsForLocale($this->model->getMorphClass(), $this->model->getKey(), $locale);
@@ -92,7 +92,7 @@ class ModelTranslationsState
      *
      * @return static
      */
-    public function loadAll()
+    public function loadAll(): static
     {
         $this->translations =
             app(ModelTranslationsRepository::class)->getModelTranslations($this->model->getMorphClass(), $this->model->getKey());
@@ -140,10 +140,10 @@ class ModelTranslationsState
     /**
      * Resolve a translation from cache, respecting queued upserts/deletes/flush.
      * Returns `null` if the key has no resolvable value for the given locale.
-     * 
+     *
      * Only reflects the database if the locale has been loaded via `load()` or `loadAll()` first
      * (see `isLoaded()` and `isAllLoaded()`); otherwise limited to a queued upsert for the key.
-     * 
+     *
      * @param string $key
      * @param string $locale
      * @return string|null
@@ -168,7 +168,7 @@ class ModelTranslationsState
 
     /**
      * Resolve all translations currently known to the state, respecting queued upserts/deletes/flush.
-     * 
+     *
      * Only reflects every locale and key in the database if `loadAll()` has been called first
      * (see `isAllLoaded()`); otherwise limited to locales and keys individually loaded or queued for upsert.
      *
@@ -189,7 +189,7 @@ class ModelTranslationsState
 
     /**
      * Resolve locales currently known to the state, respecting queued upserts/deletes/flush.
-     * 
+     *
      * Only reflects every locale in the database if `loadAll()` has been called first
      * (see `isAllLoaded()`); otherwise limited to locales individually loaded or queued for upsert.
      *
@@ -203,7 +203,7 @@ class ModelTranslationsState
     /**
      * Resolve all translations for a single attribute key, across every locale known to the state,
      * respecting queued upserts/deletes/flush.
-     * 
+     *
      * Only reflects every locale in the database if `loadAll()` has been called first
      * (see `isAllLoaded()`); otherwise limited to locales individually loaded or queued for upsert.
      *
@@ -238,7 +238,7 @@ class ModelTranslationsState
     /**
      * Resolve all translations for a single locale, across every attribute key known to the state,
      * respecting queued upserts/deletes/flush.
-     * 
+     *
      * Only reflects every key in the database if `loadAll()` has been called first
      * (see `isAllLoaded()`); otherwise limited to keys individually loaded or queued for upsert.
      *
@@ -297,13 +297,13 @@ class ModelTranslationsState
 
     /**
      * Queue a translation for upsert, discarding any queued deletion for the same key/locale.
-     * 
+     *
      * @param string $key
      * @param string $translation
      * @param string $locale
      * @return static
      */
-    public function upsert(string $key, string $translation, string $locale)
+    public function upsert(string $key, string $translation, string $locale): static
     {
         unset($this->toDelete[$locale][$key]);
 
@@ -314,12 +314,12 @@ class ModelTranslationsState
 
     /**
      * Queue a translation for deletion, discarding any queued upsert for the same key/locale.
-     * 
+     *
      * @param string $key
      * @param string $locale
      * @return static
      */
-    public function delete(string $key, string $locale)
+    public function delete(string $key, string $locale): static
     {
         unset($this->toUpsert[$locale][$key]);
 
@@ -335,7 +335,7 @@ class ModelTranslationsState
      * @param array<string>|string $keys
      * @return static
      */
-    public function deleteKeys($keys)
+    public function deleteKeys(array|string $keys): static
     {
         if (blank($keys)) {
             return $this;
@@ -359,11 +359,11 @@ class ModelTranslationsState
     /**
      * Queue one or more locales to be deleted entirely,
      * discarding any queued upserts/deletes for keys under those locales.
-     * 
+     *
      * @param array<string>|string $locales
      * @return static
      */
-    public function deleteLocales($locales)
+    public function deleteLocales(array|string $locales): static
     {
         if (blank($locales)) {
             return $this;
@@ -383,10 +383,10 @@ class ModelTranslationsState
 
     /**
      * Queue every locale to be flushed entirely, discarding any queued upserts/deletes.
-     * 
+     *
      * @return static
      */
-    public function flushAll()
+    public function flushAll(): static
     {
         $this->toUpsert = [];
         $this->toDelete = [];
@@ -400,7 +400,7 @@ class ModelTranslationsState
 
     /**
      * Determine whether translations for the given locale have been loaded into the cache.
-     * 
+     *
      * @param string $locale
      * @return bool
      */
@@ -411,7 +411,7 @@ class ModelTranslationsState
 
     /**
      * Determine whether translations for every locale have been loaded into the cache.
-     * 
+     *
      * @return bool
      */
     public function isAllLoaded(): bool
@@ -434,7 +434,7 @@ class ModelTranslationsState
 
     /**
      * Determine whether any upserts, deletes, or flush are currently queued.
-     * 
+     *
      * @return bool
      */
     public function hasPendingChanges(): bool
@@ -450,7 +450,7 @@ class ModelTranslationsState
      * Persist all queued actions to the database, in order: entire locale deletes,
      * then entire key deletes, then translation deletes, then translation upserts. Reconciles the cached
      * translations to match, then clears all queues.
-     * 
+     *
      * @return void
      */
     public function commit(): void
@@ -480,10 +480,10 @@ class ModelTranslationsState
 
     /**
      * Discard all queued upserts, deletes, and flush, leaving the cached translations untouched.
-     * 
+     *
      * @return static
      */
-    public function clear()
+    public function clear(): static
     {
         $this->toUpsert = [];
         $this->toDelete = [];
@@ -496,10 +496,10 @@ class ModelTranslationsState
 
     /**
      * Discard all queued actions and the cached translations, returning to a blank slate.
-     * 
+     *
      * @return static
      */
-    public function reset()
+    public function reset(): static
     {
         $this->translations = [];
         $this->isAllLoaded = false;

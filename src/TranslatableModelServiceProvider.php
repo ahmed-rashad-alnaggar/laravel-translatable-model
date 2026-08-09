@@ -9,14 +9,18 @@ class TranslatableModelServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
-     * 
+     *
      * @return void
      */
     public function register(): void
     {
+        $this->app->singleton('translatable-model', static function (): TranslatableModelManager {
+            return new TranslatableModelManager();
+        });
+
         $this->app->singleton(ModelTranslationsRepository::class, static function (Container $app): ModelTranslationsRepository {
             return new ModelTranslationsRepository(
-                $app->make('db')->connection($app->make('config')->get('translatable-model.connection'))
+                $app->make('db')->connection($app->make('translatable-model')->connection())
             );
         });
 
@@ -25,7 +29,7 @@ class TranslatableModelServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap any application services.
-     * 
+     *
      * @return void
      */
     public function boot(): void

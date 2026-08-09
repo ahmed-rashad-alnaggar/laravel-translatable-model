@@ -15,7 +15,7 @@ abstract class FallbackStrategy
      * @throws \InvalidArgumentException
      * @return ($strategy is class-string<TStrategy> ? TStrategy : ($strategy is \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy ? TStrategy : \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy))
      */
-    public static function make($strategy)
+    public static function make(FallbackStrategy|string $strategy)
     {
         if ($strategy instanceof static) {
             return $strategy;
@@ -52,7 +52,7 @@ abstract class FallbackStrategy
         $attempted = [$requestedLocale => true];
 
         foreach ($this->fallbackLocales($model, $key, $requestedLocale) as $locale) {
-            if (isset($attempted[$requestedLocale])) {
+            if (isset($attempted[$locale])) {
                 continue;
             }
 
@@ -72,10 +72,10 @@ abstract class FallbackStrategy
      *
      * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
      * @param string $key
-     * @param string $locale
+     * @param string $requestedLocale
      * @return array<string>
      */
-    abstract protected function fallbackLocales(Model $model, string $key, string $locale): array;
+    abstract protected function fallbackLocales(Model $model, string $key, string $requestedLocale): array;
 
     /**
      * Value to use when every fallback locale is exhausted and none had a translation.
