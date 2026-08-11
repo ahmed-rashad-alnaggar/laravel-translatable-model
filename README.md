@@ -19,10 +19,10 @@ A package that stores model attribute translations in a separate database table.
 - [Usage](#usage)
 - [Nested Translatables](#nested-translatables)
 - [Wildcard Translatables](#wildcard-translatables)
-- [Fallback Strategies](#fallback-strategies)
-- [Querying](#querying)
-- [Casting](#casting)
 - [Dynamic Translatables](#dynamic-translatables)
+- [Fallback Strategies](#fallback-strategies)
+- [Casting](#casting)
+- [Querying](#querying)
 - [Disabling Translations](#disabling-translations)
 - [API Reference](#api-reference)
 - [Contributing](#contributing)
@@ -243,6 +243,48 @@ protected function translatables(): array
 > [!NOTE]
 > The exact string format used internally for a wildcard-resolved storage key (visible if you inspect `model_translations.key` directly) is an implementation detail. Don't parse it or write queries against its literal shape — it may change between versions. Use the model's own API (`getTranslation()`, `getTranslatables()`, etc.) instead.
 
+## Dynamic Translatables
+
+For a model with no fixed set of translatable attributes — e.g. a `Setting` model whose translatable keys aren't known ahead of time — override `hasDynamicTranslatables()`:
+
+```php
+class Setting extends Model
+{
+    use HasTranslations;
+
+    protected $fillable = ['key', 'value'];
+
+    protected $casts = ['value' => 'array'];
+
+    protected function hasDynamicTranslatables(): bool
+    {
+        return true;
+    }
+}
+```
+
+With this enabled, the model's translatable attributes are *discovered* from what's already stored in `model_translations`, instead of coming from `translatables()`.
+
+> [!NOTE]
+> `hasDynamicTranslatables()` and `translatables()` are mutually exclusive, not merged — a dynamic model's static `translatables()` (if any) is ignored entirely in favor of discovery.
+
+A dynamic key only needs to be registered explicitly with `rememberDynamicTranslatable()` when it is being translated **for the first time** — that is, when no translation for the key has ever been stored, or when all existing translations for that key have since been deleted. Once a translation exists, the key is discovered automatically on subsequent use.
+
+For example, in a seeder, register the key before assigning its first translation:
+
+```php
+$generalSettings = Setting::create([
+    'key' => 'general_settings',
+    'value' => []
+]);
+
+$generalSettings->rememberDynamicTranslatable('value.app_name');
+$generalSettings->setTranslation('value.app_name', 'Laravel Translatable Model', 'en');
+$generalSettings->save();
+
+$settings = $generalSettings->value; // => ['app_name' => 'Laravel Translatable Model'] — translated, current locale
+```
+
 ## Fallback Strategies
 
 A fallback strategy controls what happens when a translation is missing for the requested locale. Five are included:
@@ -265,6 +307,24 @@ Write your own by extending the abstract `FallbackStrategy` class and implementi
 
 > [!NOTE]
 > Normal attribute access (`$model->attribute`, `$model['attribute']`, `$model->attributesToArray()`, etc.) falls back further than the CRUD API does. If neither the requested locale nor the fallback strategy resolves anything (e.g. `NoFallbackStrategy`, or any strategy whose `missing()` returns `null`), attribute access returns the column's raw **placeholder** value instead of `null`. Calling `getTranslation()`/`getTranslations()` directly does **not** do this — it returns exactly whatever the fallback strategy's `missing()` produces (`null` by default, or e.g. `KeyPlaceholderFallbackStrategy`'s `"{locale}.{key}"`), and never falls back further to the placeholder.
+
+## Casting
+
+Every translatable attribute — literal (whether direct or nested) or wildcard — is fully subject to whatever Eloquent cast its own column declares (`array`, `AsCollection`, `encrypted`, `encrypted:array`, a custom `CastsAttributes` class, etc.). A write runs through the real cast pipeline before its translation is extracted, and a read re-applies the same cast after the translation is merged back in.
+
+> [!WARNING]
+> If a column - whether declared translatable itself, or one that nests
+> translatable attributes under it - uses an object-returning cast (e.g.
+> `AsCollection`, `AsArrayObject`, or any custom `Castable`), mutating it in
+> place - `$model->column['key'] = $value;` - is never intercepted.
+> The change bypasses translations entirely and is written straight into the raw column.
+> Always read the value, mutate a copy, then reassign it:
+>
+> ```php
+> $value = $model->column;
+> $value['key'] = 'new value';
+> $model->column = $value;
+> ```
 
 ## Querying
 
@@ -307,66 +367,6 @@ For a query operation that is not supported, use the [TranslatableQueryBuilder A
 
 > [!WARNING]
 > Do not use custom translation joins with `select()` or other column-selection methods when retrieving model instances. The resulting models can have inconsistent and unpredictable attribute state because the selected translation values can interfere with the model's normal translation interception and attribute loading behavior.
-
-## Casting
-
-Every translatable attribute — literal (whether direct or nested) or wildcard — is fully subject to whatever Eloquent cast its own column declares (`array`, `AsCollection`, `encrypted`, `encrypted:array`, a custom `CastsAttributes` class, etc.). A write runs through the real cast pipeline before its translation is extracted, and a read re-applies the same cast after the translation is merged back in.
-
-> [!WARNING]
-> If a column - whether declared translatable itself, or one that nests
-> translatable attributes under it - uses an object-returning cast (e.g.
-> `AsCollection`, `AsArrayObject`, or any custom `Castable`), mutating it in
-> place - `$model->column['key'] = $value;` - is never intercepted.
-> The change bypasses translations entirely and is written straight into the raw column.
-> Always read the value, mutate a copy, then reassign it:
->
-> ```php
-> $value = $model->column;
-> $value['key'] = 'new value';
-> $model->column = $value;
-> ```
-
-## Dynamic Translatables
-
-For a model with no fixed set of translatable attributes — e.g. a `Setting` model whose translatable keys aren't known ahead of time — override `hasDynamicTranslatables()`:
-
-```php
-class Setting extends Model
-{
-    use HasTranslations;
-
-    protected $fillable = ['key', 'value'];
-
-    protected $casts = ['value' => 'array'];
-
-    protected function hasDynamicTranslatables(): bool
-    {
-        return true;
-    }
-}
-```
-
-With this enabled, the model's translatable attributes are *discovered* from what's already stored in `model_translations`, instead of coming from `translatables()`.
-
-> [!NOTE]
-> `hasDynamicTranslatables()` and `translatables()` are mutually exclusive, not merged — a dynamic model's static `translatables()` (if any) is ignored entirely in favor of discovery.
-
-A dynamic key only needs to be registered explicitly with `rememberDynamicTranslatable()` when it is being translated **for the first time** — that is, when no translation for the key has ever been stored, or when all existing translations for that key have since been deleted. Once a translation exists, the key is discovered automatically on subsequent use.
-
-For example, in a seeder, register the key before assigning its first translation:
-
-```php
-$generalSettings = Setting::create([
-    'key' => 'general_settings',
-    'value' => []
-]);
-
-$generalSettings->rememberDynamicTranslatable('value.app_name');
-$generalSettings->setTranslation('value.app_name', 'Laravel Translatable Model', 'en');
-$generalSettings->save();
-
-$settings = $generalSettings->value; // => ['app_name' => 'Laravel Translatable Model'] — translated, current locale
-```
 
 ## Disabling Translations
 
