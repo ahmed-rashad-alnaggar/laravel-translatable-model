@@ -462,6 +462,7 @@ Per-instance state for reading, staging, and committing translations.
 | `flushAll()`                       | `static`                          | Queue deletion of all translations                                      |
 | `isLoaded(locale)`                 | `bool`                            | Determine whether a locale has been loaded                              |
 | `isAllLoaded()`                    | `bool`                            | Determine whether all translations have been loaded                     |
+| `isFlushAllQueued()`               | `bool`                            | Determine whether a full flush has been queued                          |
 | `has(key, locale)`                 | `bool`                            | Determine whether a translation currently resolves for a key and locale |
 | `hasPendingChanges()`              | `bool`                            | Determine whether there are pending changes                             |
 | `commit()`                         | `void`                            | Persist all pending changes and clear the queue                         |

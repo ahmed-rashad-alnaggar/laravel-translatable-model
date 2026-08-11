@@ -420,6 +420,16 @@ class ModelTranslationsState
     }
 
     /**
+     * Determine whether a full flush has been queued.
+     *
+     * @return bool
+     */
+    public function isFlushAllQueued(): bool
+    {
+        return $this->isFlushAllQueued;
+    }
+
+    /**
      * Determine whether the given attribute key currently has a resolvable
      * translation for the specified locale, respecting queued upserts, deletes, and flush.
      *
