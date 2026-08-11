@@ -4,6 +4,7 @@ namespace Alnaggar\TranslatableModel\Concerns;
 
 use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 trait InteractsWithTranslatableAttributeValues
 {
@@ -71,6 +72,31 @@ trait InteractsWithTranslatableAttributeValues
         $this->setTranslationWithResolvedKey($key, $this->getAttributeFromArray($key), $locale);
 
         $this->attributes[$key] = $placeholder;
+
+        return $returnValue;
+    }
+
+    /**
+     * Set a json attribute nested under a **listed translatable column**.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param string $locale
+     * @return static
+     * @internal
+     */
+    protected function fillTranslatableColumnJsonAttribute(string $key, mixed $value, string $locale): static
+    {
+        $jsonAttributeKey = str_replace('.', '->', $key);
+        $column = Str::before($key, '.');
+
+        $placeholder = $this->getAttributeFromArray($column);
+
+        $returnValue = parent::fillJsonAttribute($jsonAttributeKey, $value);
+
+        $this->setTranslationWithResolvedKey($column, $this->getAttributeFromArray($column), $locale);
+
+        $this->attributes[$column] = $placeholder;
 
         return $returnValue;
     }
