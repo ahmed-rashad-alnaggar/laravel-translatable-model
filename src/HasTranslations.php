@@ -116,18 +116,20 @@ trait HasTranslations
      */
     public function setAttribute($key, $value)
     {
-        if (TranslatableModel::isTranslationsDisabled()) {
+        if (
+            TranslatableModel::isTranslationsDisabled()
+            || str_contains($key, '.')
+            || str_contains($key, '->')
+        ) {
             return parent::setAttribute($key, $value);
         }
 
-        $column = Str::before($key, '.');
-
-        if ($this->isTranslatableAttribute($column)) {
-            return $this->setTranslatableColumn($column, $value, app()->currentLocale());
+        if ($this->isTranslatableAttribute($key)) {
+            return $this->setTranslatableColumn($key, $value, app()->currentLocale());
         }
 
-        if ($this->isNestingTranslatableAttributes($column)) {
-            return $this->setColumnNestingTranslatables($column, $value, app()->currentLocale());
+        if ($this->isNestingTranslatableAttributes($key)) {
+            return $this->setColumnNestingTranslatables($key, $value, app()->currentLocale());
         }
 
         return parent::setAttribute($key, $value);
