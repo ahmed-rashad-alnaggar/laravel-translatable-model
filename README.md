@@ -312,6 +312,20 @@ For a query operation that is not supported, use the [TranslatableQueryBuilder A
 
 Every translatable attribute — literal (whether direct or nested) or wildcard — is fully subject to whatever Eloquent cast its own column declares (`array`, `AsCollection`, `encrypted`, `encrypted:array`, a custom `CastsAttributes` class, etc.). A write runs through the real cast pipeline before its translation is extracted, and a read re-applies the same cast after the translation is merged back in.
 
+> [!WARNING]
+> If a column - whether declared translatable itself, or one that nests
+> translatable attributes under it - uses an object-returning cast (e.g.
+> `AsCollection`, `AsArrayObject`, or any custom `Castable`), mutating it in
+> place - `$model->column['key'] = $value;` - is never intercepted.
+> The change bypasses translations entirely and is written straight into the raw column.
+> Always read the value, mutate a copy, then reassign it:
+>
+> ```php
+> $value = $model->column;
+> $value['key'] = 'new value';
+> $model->column = $value;
+> ```
+
 ## Dynamic Translatables
 
 For a model with no fixed set of translatable attributes — e.g. a `Setting` model whose translatable keys aren't known ahead of time — override `hasDynamicTranslatables()`:
