@@ -262,7 +262,7 @@ class ModelTranslationsState
      */
     public function queuedUpserts(): array
     {
-        return $this->toUpsert;
+        return array_filter($this->toUpsert);
     }
 
     /**
@@ -481,7 +481,7 @@ class ModelTranslationsState
             $repository->deleteModelTranslations($translatableType, $translatableId, $this->queuedDeletes());
         }
 
-        $repository->upsertModelTranslations($translatableType, $translatableId, $this->toUpsert);
+        $repository->upsertModelTranslations($translatableType, $translatableId, $this->queuedUpserts());
 
         $this->translations = $this->all();
 
