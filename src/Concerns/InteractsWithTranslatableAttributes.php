@@ -83,6 +83,32 @@ trait InteractsWithTranslatableAttributes
     }
 
     /**
+     * Get every concrete translatable attribute for the current model instance.
+     *
+     * Wildcard translatable attributes are resolved into their concrete positional
+     * attribute keys using the instance's current data.
+     *
+     * @return array<string>
+     */
+    public function getConcreteTranslatables(): array
+    {
+        $concreteTranslatables = array_keys($this->getCachedTranslatablesMap()['literals']);
+
+        foreach (array_keys($this->getCachedTranslatablesMap()['nested']) as $key) {
+            if (str_contains($key, '.')) {
+                continue;
+            }
+
+            array_push(
+                $concreteTranslatables,
+                ...$this->resolveNestedConcreteTranslatableAttributes($key),
+            );
+        }
+
+        return $concreteTranslatables;
+    }
+
+    /**
      * Check if the attribute is translatable.
      *
      * @param string $key
