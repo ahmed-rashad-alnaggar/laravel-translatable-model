@@ -295,7 +295,7 @@ trait InteractsWithTranslatableAttributes
      * @param string $key
      * @return array<string>
      */
-    protected function resolveNestedConcreteTranslatableAttributes(string $key): array
+    public function resolveNestedConcreteTranslatableAttributes(string $key): array
     {
         $lookupKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
 
