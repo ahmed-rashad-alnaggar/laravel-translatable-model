@@ -105,7 +105,7 @@ trait InteractsWithTranslatableAttributes
             );
         }
 
-        return $concreteTranslatables;
+        return array_values(array_unique($concreteTranslatables));
     }
 
     /**
