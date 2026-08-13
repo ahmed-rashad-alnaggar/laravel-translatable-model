@@ -111,7 +111,7 @@ The declared column(s) — `title` and `meta` here — hold a *placeholder* as t
 > [!NOTE]
 > A translatable attribute, [dynamic](#dynamic-translatables) or not, must always correspond to a real model attribute: either a model column itself or a nested attribute within one. That model column must also be loaded on the model; if it was excluded from the query using `select()`, for example, the attribute **will not be intercepted during normal model attribute access**.
 
-### Get a translation
+### Get translation(s)
 
 ```php
 $titleAr = $post->getTranslation(
@@ -120,14 +120,35 @@ $titleAr = $post->getTranslation(
     fallbackStrategy: DedicatedLocaleFallbackStrategy::class.':en' // see Fallback Strategies
 );
 
-// retrieves the translation in the current locale, applying the model's
+// Laravel-style retrievement in current locale, applying the model's
 // (or config's) default fallback strategy
 $titleAr = $post->title;
 $titleAr = $post['title'];
 
-// every locale that currently has a translation for this key
+// Every locale that currently has a translation for this key
 $allTitles = $post->getTranslations('title'); // ['ar' => 'مرحبا بالعالم', 'en' => 'Hello world', 'fr' => 'Bonjour à tous']
 ```
+
+> [!IMPORTANT]
+> `getTranslation()` and `getTranslations()` return translation values in their **final stored representation**. For top-level translatables, this is determined by the attribute's cast. For nested translatables, the value is always JSON-encoded.
+>
+> ```php
+> // 1. Top-Level Strings
+> $post->getTranslation('title', 'en'); // 'Hello World'
+> $post->title;                         // 'Hello World'
+>
+> // 2. Top-Level JSON Casts (Translatable category tags)
+> $post->getTranslation('tags', 'en');  // '["news","tutorials","releases"]' (Raw string)
+> $post->tags;                          // ['news', 'tutorials', 'releases']  (Casted array)
+>
+> // 3. Nested Strings
+> $post->getTranslation('meta.seo.description', 'en'); // '"Learn Laravel package design"' (Raw JSON string)
+> $post->meta['seo']['description'];                   // 'Learn Laravel package design'   (Decoded string)
+>
+> // 4. Nested JSON Arrays
+> $post->getTranslation('content_blocks.featured_quotes', 'en'); // '["Clean code matters","Test everything"]'
+> $post->content_blocks['featured_quotes'];                      // ['Clean code matters', 'Test everything']
+> ```
 
 ### Set translation(s)
 
@@ -138,14 +159,36 @@ $post->setTranslation(
     locale: 'en' // null for current locale
 );
 
-$post->setTranslations('title', ['ar' => 'مرحبا', 'en' => 'Hello', 'fr' => 'Bonjour à tous']);
-
-// Laravel-style assignment for current locale
+// Laravel-style assignment in current locale
 $post->title = 'Bonjour à tous';
+$post['title'] = 'Bonjour à tous';
+
+$post->setTranslations('title', ['ar' => 'مرحبا', 'en' => 'Hello', 'fr' => 'Bonjour à tous']);
 
 // Translations are upserted when the model is saved
 $post->save();
 ```
+
+> [!IMPORTANT]
+> `setTranslation()` and `setTranslations()` expect translation values in the same **final stored representation** returned by `getTranslation()` and `getTranslations()`.
+>
+> ```php
+> // 1. Top-Level Strings
+> $post->setTranslation('title', 'Hello World', 'en');
+> $post->title = 'Hello World';
+> 
+> // 2. Top-Level JSON Casts (Translatable category tags)
+> $post->setTranslation('tags', json_encode(['news', 'tutorials', 'releases']), 'en');
+> $post->tags = ['news', 'tutorials', 'releases'];
+> 
+> // 3. Nested Strings
+> $post->setTranslation('meta.seo.description', json_encode('Learn Laravel package design'), 'en');
+> $post->meta = ['seo' => ['description' => 'Learn Laravel package design'], 'robots' => 'index'];
+> 
+> // 4. Nested JSON Arrays
+> $post->setTranslation('content_blocks.featured_quotes', json_encode(['Clean code matters', 'Test everything']), 'en');
+> $post->content_blocks = ['featured_quotes' => ['Clean code matters', 'Test everything']];
+> ```
 
 > [!NOTE]
 > Setting a translation value to `null` is interpreted as a deletion for that key/locale, not a stored empty value.
