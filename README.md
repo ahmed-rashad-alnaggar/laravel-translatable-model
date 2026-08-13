@@ -108,7 +108,7 @@ class Post extends Model
 
 The declared column(s) — `title` and `meta` here — hold a *placeholder* as their raw database value, not the real translated text, which lives entirely in `model_translations`. The placeholder can be anything: whatever the column held before a translation was ever set, or a value you set deliberately (see [Disabling Translations](#disabling-translations) for writing one directly).
 
-> [!NOTE]
+> [!IMPORTANT]
 > A translatable attribute, [dynamic](#dynamic-translatables) or not, must always correspond to a real model attribute: either a model column itself or a nested attribute within one. That model column must also be loaded on the model; if it was excluded from the query using `select()`, for example, the attribute **will not be intercepted during normal model attribute access**.
 
 ### Get translation(s)
@@ -280,7 +280,7 @@ protected function translatables(): array
 }
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Every item must actually carry its identity field (`id` by default, or whatever `*:fieldName` names) for its translation to be tracked. An item missing that field is silently excluded — not an error, just untracked.
 
 > [!NOTE]
@@ -398,7 +398,7 @@ Nested literal attributes use Laravel's JSON selector syntax:
 Post::where('meta->title', 'like', '%hello%')->get();
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > Translation queries require the model's database connection and the `model_translations` table's connection to be the **same connection**. A SQL join cannot span different database connections.
 
 > [!WARNING]
