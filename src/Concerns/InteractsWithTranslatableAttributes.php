@@ -99,9 +99,14 @@ trait InteractsWithTranslatableAttributes
                 continue;
             }
 
+            $nestedConcreteTranslatables = array_map(
+                static fn (string $nestedConcreteTranslatable): string => "{$key}.{$nestedConcreteTranslatable}",
+                $this->resolveNestedConcreteTranslatableAttributes($key)
+            );
+
             array_push(
                 $concreteTranslatables,
-                ...$this->resolveNestedConcreteTranslatableAttributes($key),
+                ...$nestedConcreteTranslatables,
             );
         }
 
