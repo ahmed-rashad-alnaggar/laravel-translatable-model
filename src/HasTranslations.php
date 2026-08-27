@@ -4,6 +4,7 @@ namespace Alnaggar\TranslatableModel;
 
 use Alnaggar\TranslatableModel\Concerns;
 use Alnaggar\TranslatableModel\Facades\TranslatableModel;
+use Illuminate\Contracts\Database\Eloquent\CastsInboundAttributes;
 use Illuminate\Support\Str;
 
 trait HasTranslations
@@ -97,18 +98,33 @@ trait HasTranslations
             return parent::getClassCastableAttributeValue($key, $value);
         }
 
-        // $value already reflects the resolved translation or the nested merge.
-        // Some casts (e.g. AsCollection) ignore it and re-read $attributes[$key]
-        // directly, so that slot must hold it too, not just the argument.
-        $attribute = $this->attributes[$key];
+        $caster = $this->resolveCasterClass($key);
 
-        $this->attributes[$key] = $value;
+        $objectCachingDisabled = $caster->withoutObjectCaching ?? false;
 
-        $returnValue = parent::getClassCastableAttributeValue($key, $value);
+        if (isset($this->classCastCache[$key]) && ! $objectCachingDisabled) {
+            return $this->classCastCache[$key];
+        } else {
+            $value = $caster instanceof CastsInboundAttributes
+                ? $value
+                : $caster->get($this, $key, $value, [
+                    ...$this->attributes,
+                    // $value already reflects the resolved translation or the nested merge.
+                    // Some casts (e.g. AsCollection) ignore it and re-read $attributes[$key]
+                    // directly, so that slot must hold it too, not just the argument.
+                    $key => $value
+                ]);
 
-        $this->attributes[$key] = $attribute;
+            if ($caster instanceof CastsInboundAttributes ||
+                ! is_object($value) ||
+                $objectCachingDisabled) {
+                unset($this->classCastCache[$key]);
+            } else {
+                $this->classCastCache[$key] = $value;
+            }
 
-        return $returnValue;
+            return $value;
+        }
     }
 
     /**
