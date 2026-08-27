@@ -115,9 +115,11 @@ trait HasTranslations
                     $key => $value
                 ]);
 
-            if ($caster instanceof CastsInboundAttributes ||
-                ! is_object($value) ||
-                $objectCachingDisabled) {
+            if (
+                $caster instanceof CastsInboundAttributes
+                || ! is_object($value)
+                || $objectCachingDisabled
+            ) {
                 unset($this->classCastCache[$key]);
             } else {
                 $this->classCastCache[$key] = $value;
