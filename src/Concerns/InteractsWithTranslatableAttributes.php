@@ -63,7 +63,7 @@ trait InteractsWithTranslatableAttributes
         $map = $this->getCachedTranslatablesMap();
 
         $literals = array_keys($map['literals']);
-        $wildcards = array_map(
+        $wildcards = array_values(array_map(
             static function (array $patternSegments): string {
                 $patternSegments = array_map(
                     static function (array $patternSegment): string {
@@ -77,7 +77,7 @@ trait InteractsWithTranslatableAttributes
                 return implode('.', $patternSegments);
             },
             $map['wildcards']
-        );
+        ));
 
         return array_merge($literals, $wildcards);
     }
