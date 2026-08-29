@@ -54,7 +54,7 @@ trait InteractsWithTranslatableAttributes
     protected bool $isCachedTranslatablesMapResolved = false;
 
     /**
-     * Get a plain, dot-notated array of the model's translatable attributes.
+     * Get all declared or discovered translatable attribute keys, **without resolving wildcard patterns**.
      *
      * @return array<string>
      */
@@ -83,10 +83,9 @@ trait InteractsWithTranslatableAttributes
     }
 
     /**
-     * Get every concrete translatable attribute for the current model instance.
-     *
-     * Wildcard translatable attributes are resolved into their concrete positional
-     * attribute keys using the instance's current data.
+     * Get all declared or discovered translatable attribute keys,
+     * resolving wildcard patterns into their concrete positional keys against
+     * the current model instance's data.
      *
      * @return array<string>
      */
