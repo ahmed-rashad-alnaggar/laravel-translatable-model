@@ -134,9 +134,10 @@ trait InteractsWithTranslatableAttributes
      */
     public function isNestingTranslatableAttributes(string $key): bool
     {
-        $key = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
+        $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
 
-        return isset($this->getCachedTranslatablesMap()['nested'][$key]);
+        return isset($this->getCachedTranslatablesMap()['nested'][$key])
+            || isset($this->getCachedTranslatablesMap()['nested'][$wildcardKey]);
     }
 
     /**
@@ -327,7 +328,9 @@ trait InteractsWithTranslatableAttributes
      */
     public function resolveNestedConcreteTranslatableAttributes(string $key): array
     {
-        $lookupKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
+        $lookupKey = isset($this->getCachedTranslatablesMap()['nested'][$key])
+            ? $key
+            : $this->normalizeConcreteKeyToLookupWildcardPattern($key);
 
         [$concreteTranslatableAttributes, $nestedWildcardTranslatableAttributes] =
             Arr::partition(
