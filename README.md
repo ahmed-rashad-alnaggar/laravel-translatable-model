@@ -94,6 +94,13 @@ class Post extends Model
 {
     use HasTranslations;
 
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
+        ];
+    }
+
     protected function translatables(): array
     {
         return [
@@ -132,6 +139,9 @@ $allTitles = $post->getTranslations(
 );
 // ['ar' => 'مرحبا بالعالم', 'en' => 'Hello world', 'fr' => 'Bonjour à tous']
 ```
+
+> [!NOTE]
+> Normal attribute access (`$model->attribute`, `$model['attribute']`, `$model->attributesToArray()`, etc.) falls back further than the CRUD API (`getTranslation()`, `getTranslations()`) does. If neither the requested locale nor the fallback strategy resolves anything (e.g. `NoFallbackStrategy`, or any strategy whose `missing()` returns `null`), attribute access returns the column's raw **placeholder** value instead of `null`. Calling `getTranslation()`/`getTranslations()` directly does **not** do this — it returns exactly whatever the fallback strategy's `missing()` produces (`null` by default, or e.g. `KeyPlaceholderFallbackStrategy`'s `"{locale}.{key}"`), and never falls back further to the placeholder.
 
 ### Set translation(s)
 
@@ -313,9 +323,6 @@ $post->getTranslation('title', 'ar', NoFallbackStrategy::class);
 
 Write your own by extending the abstract `FallbackStrategy` class and implementing `fallbackLocales(Model $model, string $key, string $requestedLocale): array` (the locales to try, in order), and optionally `missing(...)` (what to return if every one of them comes up empty — defaults to `null`).
 
-> [!NOTE]
-> Normal attribute access (`$model->attribute`, `$model['attribute']`, `$model->attributesToArray()`, etc.) falls back further than the CRUD API does. If neither the requested locale nor the fallback strategy resolves anything (e.g. `NoFallbackStrategy`, or any strategy whose `missing()` returns `null`), attribute access returns the column's raw **placeholder** value instead of `null`. Calling `getTranslation()`/`getTranslations()` directly does **not** do this — it returns exactly whatever the fallback strategy's `missing()` produces (`null` by default, or e.g. `KeyPlaceholderFallbackStrategy`'s `"{locale}.{key}"`), and never falls back further to the placeholder.
-
 ## Casting
 
 Every translatable attribute — literal (whether direct or nested) or wildcard — is fully subject to whatever Eloquent cast its own column declares (`array`, `AsCollection`, `encrypted`, `encrypted:array`, a custom `CastsAttributes` class, etc.). A write runs through the real cast pipeline before its translation is extracted, and a read re-applies the same cast after the translation is merged back in.
@@ -421,11 +428,11 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 
 Query builder used by translatable models to resolve supported literal translatable attributes to their current-locale translations.
 
-| Method                                                          | Returns      | Description                                                                                         |
-| --------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
-| `setTranslatableModel(model)`                                   | `static`     | Set the translatable model whose attributes are being queried                                       |
-| `joinTranslation(key, locale = null)`                           | `void`       | Join the translation record for a key and locale                                                    |
-| `getQualifiedTranslationValueColumn(key, locale = null)`        | `string`     | Get the qualified `value` column used by a translation join                                         |
+| Method                                                   | Returns  | Description                                                   |
+| -------------------------------------------------------- | -------- | ------------------------------------------------------------- |
+| `setTranslatableModel(model)`                            | `static` | Set the translatable model whose attributes are being queried |
+| `joinTranslation(key, locale = null)`                    | `void`   | Join the translation record for a key and locale              |
+| `getQualifiedTranslationValueColumn(key, locale = null)` | `string` | Get the qualified `value` column used by a translation join   |
 
 ### `ModelTranslationsRepository`
 
