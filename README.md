@@ -309,7 +309,7 @@ class Setting extends Model
 
     protected $casts = ['value' => 'array'];
 
-    protected function hasDynamicTranslatables(): bool
+    public function hasDynamicTranslatables(): bool
     {
         return true;
     }
@@ -452,10 +452,11 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 | `hasTranslation(key, locale = null)`                          | `bool`                   | Determine whether a translation exists for a key and locale                                                                                                                       |
 | `getTranslatables()`                                          | `array<string>`          | Get all declared or discovered translatable attribute keys, **without resolving wildcard patterns**                                                                               |
 | `getConcreteTranslatables()`                                  | `array<string>`          | Get all declared or discovered translatable attribute keys, resolving wildcard patterns into their concrete positional keys against the current model instance's data.            |
-| `resolveNestedConcreteTranslatableAttributes($key)`           | `array<string>`          | Get all nested translatable attributes beneath the given concrete key, expanding wildcard-declared attributes into concrete positional keys based on the instance data.           |
+| `resolveNestedConcreteTranslatableAttributes(key)`            | `array<string>`          | Get all nested translatable attributes beneath the given concrete key, expanding wildcard-declared attributes into concrete positional keys based on the instance data.           |
 | `isTranslatableAttribute(key)`                                | `bool`                   | Determine whether the given key is translatable                                                                                                                                   |
 | `isNestingTranslatableAttributes(key)`                        | `bool`                   | Determine whether the given key contains translatable attributes beneath it                                                                                                       |
 | `rememberDynamicTranslatable(key)`                            | `static`                 | Register a key for dynamic translation discovery                                                                                                                                  |
+| `hasDynamicTranslatables()`                                   | `bool`                   | Whether the translatable attributes should be resolved dynamically.                                                                                                               |
 | `loadTranslations(locale)` / `loadAllTranslations()`          | `static`                 | Load translations into the model before they are accessed                                                                                                                         |
 | `getTranslationsState()`                                      | `ModelTranslationsState` | Get the model's in-memory [translations state](#modeltranslationsstate).                                                                                                          |
 
