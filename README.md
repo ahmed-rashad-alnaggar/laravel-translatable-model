@@ -274,7 +274,7 @@ class Setting extends Model
 
     protected $casts = ['value' => 'array'];
 
-    protected function hasDynamicTranslatables(): bool
+    public function hasDynamicTranslatables(): bool
     {
         return true;
     }
@@ -421,6 +421,7 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 | `isTranslatableAttribute(key)`                                | `bool`                   | Determine whether the given key is translatable                                                                                                                         |
 | `isNestingTranslatableAttributes(key)`                        | `bool`                   | Determine whether the given key contains translatable attributes beneath it                                                                                             |
 | `rememberDynamicTranslatable(key)`                            | `static`                 | Register a key for dynamic translation discovery                                                                                                                        |
+| `hasDynamicTranslatables()`                                   | `bool`                   | Whether the translatable attributes should be resolved dynamically.                                                                                                     |
 | `loadTranslations(locale)` / `loadAllTranslations()`          | `static`                 | Load translations into the model before they are accessed                                                                                                               |
 | `getTranslationsState()`                                      | `ModelTranslationsState` | Get the model's in-memory [translations state](#modeltranslationsstate).                                                                                                |
 

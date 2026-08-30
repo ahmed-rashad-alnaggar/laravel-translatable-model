@@ -92,7 +92,7 @@ class ModelTranslatableQueryBuilder extends Builder
         // via a JSON selector key (e.g. $model->where('city->name')).
         $normalizedKey = str_replace('->', '.', $column);
 
-        if (! isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$normalizedKey])) {
+        if (! $this->isLiteralTranslatableAttribute($normalizedKey)) {
             return $column;
         }
 
@@ -114,7 +114,7 @@ class ModelTranslatableQueryBuilder extends Builder
             ! is_string($column)
             // Laravel's pluck does not support nested keys.
             || str_contains($column, '.')
-            || ! isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$column])
+            || ! $this->isLiteralTranslatableAttribute($column)
         ) {
             return $column;
         }
@@ -122,6 +122,27 @@ class ModelTranslatableQueryBuilder extends Builder
         $this->joinTranslation($column);
 
         return $this->getQualifiedTranslationValueColumn($column)." as {$column}";
+    }
+
+    /**
+     * Determine whether the given key is a literal translatable attribute.
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected function isLiteralTranslatableAttribute(string $key): bool
+    {
+        if (
+            $this->translatableModel->hasDynamicTranslatables()
+            && blank($this->translatableModel->getKey())
+        ) {
+            return in_array(
+                $key,
+                app(ModelTranslationsRepository::class)->getModelKeys($this->translatableModel->getMorphClass())
+            );
+        }
+
+        return isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$key]);
     }
 
     /**

@@ -434,7 +434,7 @@ trait InteractsWithTranslatableAttributes
      *
      * @return bool
      */
-    protected function hasDynamicTranslatables(): bool
+    public function hasDynamicTranslatables(): bool
     {
         return false;
     }
@@ -446,6 +446,10 @@ trait InteractsWithTranslatableAttributes
      */
     protected function discoverTranslatables(): array
     {
+        if (blank($this->getKey())) {
+            return [];
+        }
+
         return array_values(
             array_unique(
                 array_map(
