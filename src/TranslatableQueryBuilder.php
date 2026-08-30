@@ -112,9 +112,8 @@ class TranslatableQueryBuilder extends Builder
     {
         if (
             ! is_string($column)
-            // Laravel's pluck does not support dot-notated or JSON selector keys.
+            // Laravel's pluck does not support nested keys.
             || str_contains($column, '.')
-            || str_contains($column, '->')
             || ! isset($this->translatableModel->getCachedTranslatablesMap()['literals'][$column])
         ) {
             return $column;
