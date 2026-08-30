@@ -28,7 +28,7 @@ trait HasTranslations
         $grammar = $connection->getQueryGrammar();
         $processor = $connection->getPostProcessor();
 
-        return app(TranslatableQueryBuilder::class, compact('connection', 'grammar', 'processor'))
+        return app(ModelTranslatableQueryBuilder::class, compact('connection', 'grammar', 'processor'))
             ->setTranslatableModel($this);
     }
 
