@@ -339,7 +339,7 @@ trait InteractsWithTranslatableAttributes
         // Recursively walk a wildcard pattern's segments from a given depth,
         // matching them against live array data, and collect the concrete,
         // position-based relative path of every leaf reached.
-        $traverseAndCollectConcreteTranslatableAttributesForWildcardPatternSegments = function (mixed $target, array $patternSegments, int $currentPatternSegmentIndex, string $traversedPath) use (&$traverseAndCollectConcreteTranslatableAttributesForWildcardPatternSegments): array {
+        $traverseAndCollectConcreteTranslatableAttributesForWildcardPatternSegments = static function (mixed $target, array $patternSegments, int $currentPatternSegmentIndex, string $traversedPath) use (&$traverseAndCollectConcreteTranslatableAttributesForWildcardPatternSegments): array {
             // Every pattern segment has been consumed; $traversedPath is a complete concrete translatable attribute.
             if ($currentPatternSegmentIndex === count($patternSegments)) {
                 return [$traversedPath];
