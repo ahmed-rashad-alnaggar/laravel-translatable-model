@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 
-class TranslatableQueryBuilder extends Builder
+class ModelTranslatableQueryBuilder extends Builder
 {
     /**
      * The translatable model being queried.

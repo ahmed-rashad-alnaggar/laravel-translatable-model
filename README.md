@@ -406,7 +406,7 @@ Post::where('meta->title', 'like', '%hello%')->get();
 
 ### Custom queries
 
-For a query operation that is not supported, use the [TranslatableQueryBuilder API](#translatablequerybuilder) to build the query and explicitly join and reference the required translation.
+For a query operation that is not supported, use the [ModelTranslatableQueryBuilder API](#modeltranslatablequerybuilder) to build the query and explicitly join and reference the required translation.
 
 > [!WARNING]
 > Do not use custom translation joins with `select()` or other column-selection methods when retrieving model instances. The resulting models can have inconsistent and unpredictable attribute state because the selected translation values can interfere with the model's normal translation interception and attribute loading behavior.
@@ -452,7 +452,7 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 | `loadTranslations(locale)` / `loadAllTranslations()`          | `static`                 | Load translations into the model before they are accessed                                                                                                                         |
 | `getTranslationsState()`                                      | `ModelTranslationsState` | Get the model's in-memory [translations state](#modeltranslationsstate).                                                                                                          |
 
-### `TranslatableQueryBuilder`
+### `ModelTranslatableQueryBuilder`
 
 Query builder used by translatable models to resolve supported literal translatable attributes to their current-locale translations.
 
