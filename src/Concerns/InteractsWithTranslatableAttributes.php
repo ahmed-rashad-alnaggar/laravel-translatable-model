@@ -407,12 +407,16 @@ trait InteractsWithTranslatableAttributes
      * its corresponding registered wildcard pattern (e.g. `faq.3.question`
      * becomes `faq.*.question`).
      *
+     * An invalid concrete key containing a wildcard segment is replaced with a non-matching key.
+     *
      * @param string $key
      * @return string
      */
     protected function normalizeConcreteKeyToLookupWildcardPattern(string $key): string
     {
-        return preg_replace('/(?<=\.)\d+(?=\.|$)|(?<=^)\d+(?=\.)/', '*', $key);
+        return str_contains($key, '*')
+            ? '__invalid_concrete_key__'
+            : preg_replace('/(?<=\.)\d+(?=\.|$)|(?<=^)\d+(?=\.)/', '*', $key);
     }
 
     /**
