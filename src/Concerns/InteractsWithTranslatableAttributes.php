@@ -263,45 +263,78 @@ trait InteractsWithTranslatableAttributes
     }
 
     /**
-     * Applies only to a wildcard-declared translatable; any other key is returned as is.
+     * Applies only to a wildcard-pattern-matching translatable; any other key is returned as is, **if existence has been verified**.
+     *
      * Resolve a model translatable attribute key (e.g. `faq.3.question`, `items.5.name`)
      * into its identity-based, resolved translation key - the key actually persisted
      * in the database (e.g. `faq.@{7}@.question`, `items.!!!uuid!!!@{550e8400-...}@.name`).
      *
      * @param string $key
+     * @param bool $keyVerifiedExistenceAgainstModelData
      * @return string
+     *
+     * @throws \InvalidArgumentException
+     * @throws \LogicException
      */
-    protected function resolveTranslationKey(string $key): string
+    protected function resolveTranslationKey(string $key, bool $keyVerifiedExistenceAgainstModelData = false): string
     {
+        $keySegments = null;
+        $column = null;
+        $attribute = null;
+
+        if (! $keyVerifiedExistenceAgainstModelData) {
+            $keySegments = explode('.', $key);
+            $column = $keySegments[0];
+            $attribute = $this->getArrayAttributeByKey($column);
+
+            if (! Arr::has($attribute, Str::after($key, '.'))) {
+                throw new \InvalidArgumentException(
+                    "Unable to resolve translation key for the concrete translatable attribute [{$key}]: it does not exist in the model's instance data."
+                );
+            }
+        }
+
         $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
 
         if (is_null($patternSegments = $this->getCachedTranslatablesMap()['wildcards'][$wildcardKey] ?? null)) {
             return $key;
         }
 
-        $keySegments = explode('.', $key);
-        $column = $keySegments[0];
+        $keySegments ??= explode('.', $key);
+        $column ??= $keySegments[0];
+        $attribute ??= $this->getArrayAttributeByKey($column);
 
-        $attribute = $this->getArrayAttributeByKey($column);
         $resolvedParts = [$column];
+
+        $getTraversedPath = static function (int $currentSegmentIndex) use ($keySegments): string {
+            return implode('.', array_slice($keySegments, 0, $currentSegmentIndex + 1));
+        };
 
         for ($i = 1; $i < count($keySegments); $i++) {
             $keySegment = $keySegments[$i];
             $patternSegment = $patternSegments[$i];
 
-            if (! is_array($attribute) || ! array_key_exists($keySegment, $attribute)) {
-                return $key;
-            }
-
             if ($patternSegment['wildcard']) {
-                $item = $attribute[$keySegment];
+                $idFieldName = $patternSegment['idField'];
+                $wildcardItem = $attribute[$keySegment];
 
-                if (! is_array($item) || ! array_key_exists($patternSegment['idField'], $item)) {
-                    return $key;
+                if (! array_key_exists($idFieldName, $wildcardItem)) {
+                    $traversedPath = $getTraversedPath($i);
+
+                    throw new \LogicException(
+                        "Unable to resolve translation key for the concrete wildcard-pattern-matching translatable attribute [{$key}]: the wildcard item at [{$traversedPath}] does not contain the required identity field [{$idFieldName}]."
+                    );
                 }
 
-                $idFieldName = $patternSegment['idField'];
-                $idFieldValue = $item[$idFieldName];
+                $idFieldValue = $wildcardItem[$idFieldName];
+
+                if (blank($idFieldValue)) {
+                    $traversedPath = $getTraversedPath($i);
+
+                    throw new \LogicException(
+                        "Unable to resolve translation key for the concrete wildcard-pattern-matching translatable attribute [{$key}]: the wildcard item at [{$traversedPath}] has no value for the identity field [{$idFieldName}]."
+                    );
+                }
 
                 $resolvedParts[] = $idFieldName === 'id'
                     ? "@{{$idFieldValue}}@"
