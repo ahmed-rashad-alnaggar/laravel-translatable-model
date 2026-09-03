@@ -31,14 +31,18 @@ trait InteractsWithTranslatableAttributeValues
      * @param string $key
      * @param string $locale
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
-     * @return mixed
+     * @return string|null
      */
-    protected function getColumnNestingTranslatablesValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): mixed
+    protected function getColumnNestingTranslatablesValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): ?string
     {
+        if (is_null($this->getAttributeFromArray($key))) {
+            return null;
+        }
+
         $attribute = $this->getArrayAttributeByKey($key);
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $translationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
+            $translationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
             $translation = $this->getTranslationWithResolvedKey($translationKey, $locale, $fallbackStrategy);
 
             if (! is_null($translation)) {
@@ -50,7 +54,7 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
-     * Set or add translation for a **listed translatable column**.
+     * Set or add translation for a translatable column.
      *
      * @param string $key
      * @param mixed $value
@@ -77,53 +81,6 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
-     * Set a json attribute nested under a **listed translatable column**.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @param string $locale
-     * @return static
-     * @internal
-     */
-    protected function fillTranslatableColumnJsonAttribute(string $key, mixed $value, string $locale): static
-    {
-        $jsonAttributeKey = str_replace('.', '->', $key);
-        $column = Str::before($key, '.');
-
-        $placeholder = $this->getAttributeFromArray($column);
-
-        $returnValue = parent::fillJsonAttribute($jsonAttributeKey, $value);
-
-        $this->setTranslationWithResolvedKey($column, $this->getAttributeFromArray($column), $locale);
-
-        $this->attributes[$column] = $placeholder;
-
-        return $returnValue;
-    }
-
-    /**
-     * Set or add translation for a **listed translatable json attribute**.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @param string $locale
-     * @return static
-     * @internal
-     */
-    protected function fillTranslatableJsonAttribute(string $key, mixed $value, string $locale): static
-    {
-        $jsonAttributeKey = str_replace('.', '->', $key);
-        [$column, $path] = explode('.', $key, 2);
-
-        $attribute = $this->getArrayAttributeByKey($column);
-        $placeholder = Arr::get($attribute, $path);
-
-        $this->setTranslationWithResolvedKey($this->resolveTranslationKey($key), $this->encodeNestedTranslation($value), $locale);
-
-        return parent::fillJsonAttribute($jsonAttributeKey, $placeholder);
-    }
-
-    /**
      * Set a nesting column while handling its nested translatable attributes.
      *
      * @param string $key
@@ -138,7 +95,7 @@ trait InteractsWithTranslatableAttributeValues
         $oldResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}")] = $nestedConcreteTranslatableAttribute;
+            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true)] = $nestedConcreteTranslatableAttribute;
         }
 
         // Run the whole payload through the real cast pipeline first (e.g. array
@@ -150,7 +107,7 @@ trait InteractsWithTranslatableAttributeValues
         $newResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
+            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
             $translation = $this->encodeNestedTranslation(Arr::get($newAttribute, $nestedConcreteTranslatableAttribute));
 
             // Restore the placeholder by resolved key, not position - the item may
@@ -180,6 +137,22 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
+     * Set or add translation for a **concrete translatable json attribute**.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param string $locale
+     * @return static
+     * @internal
+     */
+    protected function fillTranslatableJsonAttribute(string $key, mixed $value, string $locale): static
+    {
+        $this->setTranslationWithResolvedKey($this->resolveTranslationKey($key), $this->encodeNestedTranslation($value), $locale);
+
+        return $this;
+    }
+
+    /**
      * Set a nesting json attribute while handling its nested translatable attributes.
      *
      * @param string $key
@@ -197,7 +170,7 @@ trait InteractsWithTranslatableAttributeValues
         $oldResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}")] = $nestedConcreteTranslatableAttribute;
+            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true)] = $nestedConcreteTranslatableAttribute;
         }
 
         // Write the incoming value first, so live attribute data reflects the new
@@ -210,7 +183,7 @@ trait InteractsWithTranslatableAttributeValues
         $newResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
+            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
             $translation = $this->encodeNestedTranslation(Arr::get($value, $nestedConcreteTranslatableAttribute));
 
             // Restore the placeholder by resolved key, not position - the item
@@ -240,14 +213,81 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
+     * Set a json attribute nested within a translatable attribute.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param string $locale
+     * @return static
+     * @internal
+     * 
+     * @throws \LogicException
+     */
+    protected function fillJsonAttributeNestedWithinTranslatableAttribute(string $key, mixed $value, string $locale): static
+    {
+        $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
+
+        $translatable =
+            Arr::first(
+                array_keys($this->getCachedTranslatablesMap()['literals']),
+                static fn (string $translatable): bool => str_starts_with($key, "{$translatable}.")
+            )
+            ?? Arr::first(
+                array_keys($this->getCachedTranslatablesMap()['wildcards']),
+                static fn (string $translatable): bool => str_starts_with($wildcardKey, "{$translatable}.")
+            );
+
+        $keySegments = explode('.', $key);
+        $translatableSegmentsCount = count(explode('.', $translatable));
+        $concreteTranslatable = implode('.', array_slice($keySegments, 0, $translatableSegmentsCount));
+
+        $translationKey = $this->resolveTranslationKey($concreteTranslatable);
+        $translation = $this->getTranslationWithResolvedKey($translationKey, $locale, $this->getDefaultTranslationsFallbackStrategy());
+
+        if (is_null($translation)) {
+            throw new \LogicException("Unable to set the json attribute [{$key}]: its enclosing translatable attribute [{$concreteTranslatable}] has no translation for the locale [{$locale}].");
+        }
+
+        if (! str_contains($concreteTranslatable, '.')) {
+            // Swap the translation in as the live attribute value, so
+            // parent::fillJsonAttribute() applies the incoming value on top of the
+            // translation's own structure - through the column's real cast pipeline -
+            // rather than on top of the raw placeholder; then extract the merged
+            // result and restore the placeholder.
+
+            $placeholder = $this->getAttributeFromArray($concreteTranslatable);
+
+            $this->attributes[$concreteTranslatable] = $translation;
+
+            parent::fillJsonAttribute(str_replace('.', '->', $key), $value);
+
+            $translation = $this->getAttributeFromArray($concreteTranslatable);
+
+            $this->attributes[$concreteTranslatable] = $placeholder;
+        } else {
+            $path = implode('.', array_slice($keySegments, $translatableSegmentsCount));
+
+            $translation = $this->decodeNestedTranslation($translation);
+
+            Arr::set($translation, $path, $value);
+
+            $translation = $this->encodeNestedTranslation($translation);
+        }
+
+        $this->setTranslationWithResolvedKey($translationKey, $translation, $locale);
+
+        return $this;
+    }
+
+    /**
      * Cast the array value of a column nesting translatable attributes back into its storable form.
      *
      * @param string $key
      * @param array $value
-     * @return mixed
+     * @return string
      * @internal
      */
-    protected function castColumnNestingTranslatablesArrayValue(string $key, array $value): mixed
+    protected function castColumnNestingTranslatablesArrayValue(string $key, array $value): string
     {
         $value = $this->asJson($value, $this->getJsonCastFlags($key));
 

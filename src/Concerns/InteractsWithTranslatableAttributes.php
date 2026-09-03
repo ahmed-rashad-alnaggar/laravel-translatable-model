@@ -139,6 +139,32 @@ trait InteractsWithTranslatableAttributes
     }
 
     /**
+     * Check if the attribute is nested within a translatable attribute.
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected function isAttributeNestedWithinTranslatableAttribute(string $key): bool
+    {
+        foreach (array_keys($this->getCachedTranslatablesMap()['literals']) as $translatable) {
+            if (str_starts_with($key, "{$translatable}.")) {
+                return true;
+            }
+        }
+
+        $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
+
+        foreach (array_keys($this->getCachedTranslatablesMap()['wildcards']) as $translatable) {
+            if (str_starts_with($wildcardKey, "{$translatable}.")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    /**
      * Get the model's organized lookup tables for translatable attributes,
      * resolving and caching them once per instance.
      *
@@ -285,9 +311,12 @@ trait InteractsWithTranslatableAttributes
         if (! $keyVerifiedExistenceAgainstModelData) {
             $keySegments = explode('.', $key);
             $column = $keySegments[0];
-            $attribute = $this->getArrayAttributeByKey($column);
 
-            if (! Arr::has($attribute, Str::after($key, '.'))) {
+            $keyExists = count($keySegments) === 1
+                ? array_key_exists($column, $this->attributes)
+                : Arr::has($attribute = $this->getArrayAttributeByKey($column), Str::after($key, '.'));
+
+            if (! $keyExists) {
                 throw new \InvalidArgumentException(
                     "Unable to resolve translation key for the concrete translatable attribute [{$key}]: it does not exist in the model's instance data."
                 );

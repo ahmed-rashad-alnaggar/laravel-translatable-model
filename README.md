@@ -132,12 +132,11 @@ $titleAr = $post->getTranslation(
     fallbackStrategy: DedicatedLocaleFallbackStrategy::class.':en' // see Fallback Strategies
 );
 
-// Every locale that currently has a translation for this key
 $allTitles = $post->getTranslations(
     key: 'title',
+    locales: null // Applying every locale the model has translations for
     fallbackStrategy: null // Applying the model's (or config's) default fallback strategy
 );
-// ['ar' => 'مرحبا بالعالم', 'en' => 'Hello world', 'fr' => 'Bonjour à tous']
 ```
 
 > [!NOTE]
@@ -176,9 +175,9 @@ $post->removeTranslation(
     locale: 'fr' // null for current locale
 ); 
 
-$post->removeTranslationsForKeys(['title', 'meta.description']); // every translation for these keys across all locales
-$post->removeTranslationsForLocales('fr'); // every translation for this locale (accepts an array too)
-$post->flushAllTranslations(); // everything
+$post->removeTranslationsForKeys(['title', 'meta.description']); // Every translation for these keys across all locales
+$post->removeTranslationsForLocales('fr'); // Every translation for this locale (accepts an array too)
+$post->flushAllTranslations(); // Everything
 
 $post->save();
 ```
@@ -215,7 +214,7 @@ protected function translatables(): array
 $post->meta; // => ['author' => 'Ahmad', 'description' => 'Translated value']
 
 $post->meta = ['author' => 'Ahmad', 'description' => 'A translations management project'];
-// or, targeting just the leaf directly:
+// Or, targeting just the leaf directly:
 $post['meta->description'] = 'A translations management project';
 
 $post->save();
@@ -228,7 +227,7 @@ For a collection of items — however it's cast (a plain `array`, a `Collection`
 ```php
 protected function translatables(): array
 {
-    return ['variants.*.label']; // matches variants.0.label, variants.1.label, ...
+    return ['variants.*.label']; // Matches variants.0.label, variants.1.label, ...
 }
 ```
 
@@ -392,8 +391,8 @@ This is also how you set a translatable column's *placeholder* directly — e.g.
 ```php
 $post = TranslatableModel::withoutTranslations(function () {
     return Post::create([
-        'title' => 'untitled', // stored as-is, in the title column itself — not a translation
-        'meta' => ['author' => 'Ahmad', 'description' => 'no description yet'], // same thing applies to meta.description
+        'title' => 'untitled', // Stored as-is, in the title column itself — not a translation
+        'meta' => ['author' => 'Ahmad', 'description' => 'no description yet'], // Same thing applies to meta.description
     ]);
 });
 ```
@@ -404,26 +403,26 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 
 ### `HasTranslations` (model-facing)
 
-| Method                                                        | Returns                  | Description                                                                                                                                                             |
-| ------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getTranslation(key, locale = null, fallbackStrategy = null)` | `?string`                | Get one translation for a locale, applying the specified fallback strategy                                                                                              |
-| `getTranslations(key, fallbackStrategy = null)`               | `?array`                 | Get all available translations for one key, applying the specified fallback strategy                                                                                    |
-| `setTranslation(key, translation, locale = null)`             | `static`                 | Set one translation; `null` removes it                                                                                                                                  |
-| `setTranslations(key, translations)`                          | `static`                 | Set translations for one key across multiple locales                                                                                                                    |
-| `removeTranslation(key, locale = null)`                       | `static`                 | Remove one translation for a locale                                                                                                                                     |
-| `removeTranslationsForKeys(keys)`                             | `static`                 | Remove the given keys across all locales                                                                                                                                |
-| `removeTranslationsForLocales(locales)`                       | `static`                 | Remove the given locales across all keys                                                                                                                                |
-| `flushAllTranslations()`                                      | `static`                 | Remove all translations for the model                                                                                                                                   |
-| `hasTranslation(key, locale = null)`                          | `bool`                   | Determine whether a translation exists for a key and locale                                                                                                             |
-| `getTranslatables()`                                          | `array<string>`          | Get all declared or discovered translatable attribute keys, **without resolving wildcard patterns**                                                                     |
-| `getConcreteTranslatables()`                                  | `array<string>`          | Get all declared or discovered translatable attribute keys, resolving wildcard patterns into their concrete positional keys against the current model instance's data.  |
-| `resolveNestedConcreteTranslatableAttributes($key)`           | `array<string>`          | Get all nested translatable attributes beneath the given concrete key, expanding wildcard-declared attributes into concrete positional keys based on the instance data. |
-| `isTranslatableAttribute(key)`                                | `bool`                   | Determine whether the given key is translatable                                                                                                                         |
-| `isNestingTranslatableAttributes(key)`                        | `bool`                   | Determine whether the given key contains translatable attributes beneath it                                                                                             |
-| `rememberDynamicTranslatable(key)`                            | `static`                 | Register a key for dynamic translation discovery                                                                                                                        |
-| `hasDynamicTranslatables()`                                   | `bool`                   | Whether the translatable attributes should be resolved dynamically.                                                                                                     |
-| `loadTranslations(locale)` / `loadAllTranslations()`          | `static`                 | Load translations into the model before they are accessed                                                                                                               |
-| `getTranslationsState()`                                      | `ModelTranslationsState` | Get the model's in-memory [translations state](#modeltranslationsstate).                                                                                                |
+| Method                                                          | Returns                  | Description                                                                                                                                                             |
+| --------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getTranslation(key, locale = null, fallbackStrategy = null)`   | `mixed`                  | Get one translation for a locale, applying the specified fallback strategy                                                                                              |
+| `getTranslations(key, locales = null, fallbackStrategy = null)` | `?array`                 | Get all available translations for one key in the given locales, or across every locale the model has translations for, applying the specified fallback strategy        |
+| `setTranslation(key, translation, locale = null)`               | `static`                 | Set one translation; `null` removes it                                                                                                                                  |
+| `setTranslations(key, translations)`                            | `static`                 | Set translations for one key across multiple locales                                                                                                                    |
+| `removeTranslation(key, locale = null)`                         | `static`                 | Remove one translation for a locale                                                                                                                                     |
+| `removeTranslationsForKeys(keys)`                               | `static`                 | Remove the given keys across all locales                                                                                                                                |
+| `removeTranslationsForLocales(locales)`                         | `static`                 | Remove the given locales across all keys                                                                                                                                |
+| `flushAllTranslations()`                                        | `static`                 | Remove all translations for the model                                                                                                                                   |
+| `hasTranslation(key, locale = null)`                            | `bool`                   | Determine whether a translation exists for a key and locale                                                                                                             |
+| `getTranslatables()`                                            | `array<string>`          | Get all declared or discovered translatable attribute keys, **without resolving wildcard patterns**                                                                     |
+| `getConcreteTranslatables()`                                    | `array<string>`          | Get all declared or discovered translatable attribute keys, resolving wildcard patterns into their concrete positional keys against the current model instance's data.  |
+| `resolveNestedConcreteTranslatableAttributes($key)`             | `array<string>`          | Get all nested translatable attributes beneath the given concrete key, expanding wildcard-declared attributes into concrete positional keys based on the instance data. |
+| `isTranslatableAttribute(key)`                                  | `bool`                   | Determine whether the given key is translatable                                                                                                                         |
+| `isNestingTranslatableAttributes(key)`                          | `bool`                   | Determine whether the given key contains translatable attributes beneath it                                                                                             |
+| `rememberDynamicTranslatable(key)`                              | `static`                 | Register a key for dynamic translation discovery                                                                                                                        |
+| `hasDynamicTranslatables()`                                     | `bool`                   | Whether the translatable attributes should be resolved dynamically.                                                                                                     |
+| `loadTranslations(locale)` / `loadAllTranslations()`            | `static`                 | Load translations into the model before they are accessed                                                                                                               |
+| `getTranslationsState()`                                        | `ModelTranslationsState` | Get the model's in-memory [translations state](#modeltranslationsstate).                                                                                                |
 
 ### `ModelTranslatableQueryBuilder`
 

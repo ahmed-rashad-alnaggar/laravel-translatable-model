@@ -46,7 +46,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Retrieve the translation of a **listed translatable attribute** for the given locale.
+     * Retrieve the translation of a **concrete translatable attribute** for the given locale.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
@@ -62,69 +62,90 @@ trait ManagesTranslations
         $locale ??= app()->currentLocale();
         $fallbackStrategy = FallbackStrategy::make($fallbackStrategy ?? $this->getDefaultTranslationsFallbackStrategy());
 
-        $attributes = $this->attributes;
+        $translation = $this->getTranslationWithResolvedKey($this->resolveTranslationKey($key), $locale, $fallbackStrategy);
 
-        // Before calling the methods that fetch the column value,
-        // set the placeholder to null as those methods fall back to it,
-        // while the purpose of this method is only to get the translation.
-
-        if (! str_contains($key, '.')) {
-            $this->attributes[$key] = null;
-
-            $translation = $this->transformModelValue(
-                $key,
-                $this->getTranslatableColumnValue($key, $locale, $fallbackStrategy)
-            );
-        } else {
-            TranslatableModel::withoutTranslations(function () use ($key): void {
-                $this[str_replace('.', '->', $key)] = null;
-            });
-
-            [$column, $path] = explode('.', $key, 2);
-
-            $attribute = $this->transformModelValue(
-                $column,
-                $this->getColumnNestingTranslatablesValue($column, $locale, $fallbackStrategy)
-            );
-
-            $translation = data_get($attribute, $path);
+        if (is_null($translation)) {
+            return null;
         }
 
-        $this->attributes = $attributes;
+        if (! str_contains($key, '.')) {
+            return $this->transformModelValue($key, $translation);
+        }
 
-        return $translation;
+        [$column, $path] = explode('.', $key, 2);
+
+        $attribute = $this->getArrayAttributeByKey($column);
+
+        Arr::set($attribute, $path, $this->decodeNestedTranslation($translation));
+
+        $attribute = $this->transformModelValue($column, $this->castColumnNestingTranslatablesArrayValue($column, $attribute));
+
+        return data_get($attribute, $path);
     }
 
     /**
-     * Retrieve all translations of a **listed translatable attribute** across all locales.
+     * Retrieve translations of a **concrete translatable attribute**, for the given `$locales`,
+     * or across every locale the model has translations for.
      *
      * @param string $key
+     * @param array<string>|null $locales
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
      * @return array|null
      */
-    public function getTranslations(string $key, FallbackStrategy|string|null $fallbackStrategy = null): ?array
+    public function getTranslations(string $key, ?array $locales = null, FallbackStrategy|string|null $fallbackStrategy = null): ?array
     {
         if (! $this->isTranslatableAttribute($key)) {
             return null;
         }
 
-        $this->loadAllTranslations();
+        if (is_null($locales)) {
+            $this->loadAllTranslations();
+        } else {
+            foreach ($locales as $locale) {
+                $this->loadTranslations($locale);
+            }
+        }
 
         $translations = [];
 
-        $locales = $this->getTranslationsState()->locales();
+        $translationKey = $this->resolveTranslationKey($key);
+        $locales ??= $this->getTranslationsState()->locales();
         $fallbackStrategy = FallbackStrategy::make($fallbackStrategy ?? $this->getDefaultTranslationsFallbackStrategy());
 
+        if (str_contains($key, '.')) {
+            [$column, $path] = explode('.', $key, 2);
+
+            $attribute = $this->getArrayAttributeByKey($column);
+        }
+
         foreach ($locales as $locale) {
-            $translations[$locale] = $this->getTranslation($key, $locale, $fallbackStrategy);
+            $translation = $this->getTranslationWithResolvedKey($translationKey, $locale, $fallbackStrategy);
+
+            if (is_null($translation)) {
+                $translations[$locale] = null;
+
+                continue;
+            }
+
+            if (! str_contains($key, '.')) {
+                $translations[$locale] = $this->transformModelValue($key, $translation);
+
+                continue;
+            }
+
+            Arr::set($attribute, $path, $this->decodeNestedTranslation($translation));
+
+            $castedAttribute = $this->transformModelValue($column, $this->castColumnNestingTranslatablesArrayValue($column, $attribute));
+
+            $translations[$locale] = data_get($castedAttribute, $path);
         }
 
         return $translations;
     }
 
     /**
-     * Retrieve the translation of a **listed translatable attribute**, given its
-     * already-resolved, identity-based translation key.
+     * Retrieve the translation in its **stored representation form**
+     * for a **concrete translatable attribute**, given its already-resolved translation key.
      *
      * @param string $key
      * @param string $locale
@@ -144,7 +165,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Set or add translation for a **listed translatable attribute**.
+     * Set or add translation for a **concrete translatable attribute**.
      *
      * @param string $key
      * @param mixed $translation
@@ -157,78 +178,35 @@ trait ManagesTranslations
             return $this;
         }
 
+        $translationKey = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
+
+        if (is_null($translation)) {
+            $this->removeTranslationWithResolvedKey($translationKey, $locale);
+
+            return $this;
+        }
 
         $attributes = $this->attributes;
 
-        if (! str_contains($key, '.')) {
-            $this->setTranslatableColumn($key, $translation, $locale);
-        } else {
-            // Recursively walk a translation key's dot-separated segments into a nested
-            // array/object structure and write the given value at the leaf, resolving
-            // each intermediate segment's current value on the way down and writing it
-            // back on the way up via data_set() (which already covers plain properties,
-            // array keys, and magic __set). If a segment turns out to be a readonly
-            // property, data_set()'s failure is caught and a fresh instance of that
-            // object is rebuilt via reflection instead, copying every other property
-            // across unchanged and substituting the new value for this one.
-            $setNestedTranslation = static function (object|array $target, array $keySegments, mixed $translation) use (&$setNestedTranslation): object|array {
-                $keySegment = array_shift($keySegments);
+        TranslatableModel::withoutTranslations(function () use ($key, $translationKey, $translation, $locale): void {
+            if (! str_contains($key, '.')) {
+                $this->setAttribute($key, $translation);
 
-                if (blank($keySegments)) {
-                    $nestedValue = $translation;
-                } else {
-                    if (Arr::accessible($target)) {
-                        $nestedTarget = $target[$keySegment] ?? null;
-                    } else {
-                        $nestedTarget = $target->$keySegment;
-                    }
+                $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
+            } else {
+                $keySegments = explode('.', $key);
+                $column = array_shift($keySegments);
 
-                    $nestedValue = $setNestedTranslation($nestedTarget, $keySegments, $translation);
-                }
+                $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($this->getAttributeValue($column), $keySegments, $translation);
 
-                try {
-                    data_set($target, $keySegment, $nestedValue);
+                $this->setAttribute($column, $attribute);
 
-                    return $target;
-                } catch (\Error $error) {
-                    if (! str_starts_with($error->getMessage(), 'Cannot modify readonly property')) {
-                        throw $error;
-                    }
-                }
+                $translation = Arr::get($this->getArrayAttributeByKey($column), implode('.', $keySegments));
 
-                $reflection = new \ReflectionClass($target);
-
-                $mutated = $reflection->newInstanceWithoutConstructor();
-
-                foreach ($reflection->getProperties() as $property) {
-                    if ($property->isStatic()) {
-                        continue;
-                    }
-
-                    $propertyName = $property->getName();
-
-                    if ($propertyName === $keySegment) {
-                        $property->setValue($mutated, $nestedValue);
-
-                        continue;
-                    }
-
-                    if ($property->isInitialized($target)) {
-                        $property->setValue($mutated, $property->getValue($target));
-                    }
-                }
-
-                return $mutated;
-            };
-
-            $keySegments = explode('.', $key);
-            $column = array_shift($keySegments);
-
-            $attribute = $setNestedTranslation($this->getAttributeValue($column), $keySegments, $translation);
-
-            $this->setColumnNestingTranslatables($column, $attribute, $locale);
-        }
+                $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
+            }
+        });
 
         $this->attributes = $attributes;
 
@@ -236,7 +214,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Set or add translations for a **listed translatable attribute**.
+     * Set or add translations for a **concrete translatable attribute**.
      *
      * @param string $key
      * @param array<string, string|null> $translations
@@ -248,36 +226,137 @@ trait ManagesTranslations
             return $this;
         }
 
-        foreach ($translations as $locale => $translation) {
-            $this->setTranslation($key, $translation, $locale);
-        }
+        $translationKey = $this->resolveTranslationKey($key);
+
+        $attributes = $this->attributes;
+
+        TranslatableModel::withoutTranslations(function () use ($key, $translationKey, $translations): void {
+            if (str_contains($key, '.')) {
+                $keySegments = explode('.', $key);
+                $column = array_shift($keySegments);
+                $path = implode('.', $keySegments);
+
+                $castedAttribute = $this->getAttributeValue($column);
+            }
+
+            foreach ($translations as $locale => $translation) {
+                if (is_null($translation)) {
+                    $this->removeTranslationWithResolvedKey($translationKey, $locale);
+
+                    continue;
+                }
+
+                if (! str_contains($key, '.')) {
+                    $this->setAttribute($key, $translation);
+
+                    $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
+
+                    continue;
+                } else {
+                    $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($castedAttribute, $keySegments, $translation);
+
+                    $this->setAttribute($column, $attribute);
+
+                    $translation = Arr::get($this->getArrayAttributeByKey($column), $path);
+
+                    $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
+                }
+            }
+        });
+
+
+        $this->attributes = $attributes;
 
         return $this;
     }
 
     /**
-     * Set or add translation for a **listed translatable attribute**, given
-     * its already-resolved, identity-based translation key.
+     * Recursively walk a translation key's dot-separated segments into a nested
+     * array/object structure and write the given value at the leaf, resolving
+     * each intermediate segment's current value on the way down and writing it
+     * back on the way up via data_set() (which already covers plain properties
+     * and array keys). If a segment turns out to be a readonly property,
+     * data_set()'s failure is caught and a fresh instance of that
+     * object is rebuilt via reflection instead, copying every other property
+     * across unchanged and substituting the new value for this one.
+     *
+     * @param object|array $target
+     * @param array $keySegments
+     * @param mixed $translation
+     * @return array|object
+     */
+    protected function forceMutateNestedTranslationWithinCastedNestingColumnValue(object|array $target, array $keySegments, mixed $translation): object|array
+    {
+        $keySegment = array_shift($keySegments);
+
+        if (blank($keySegments)) {
+            $nestedValue = $translation;
+        } else {
+            if (Arr::accessible($target)) {
+                $nestedTarget = $target[$keySegment] ?? null;
+            } else {
+                $nestedTarget = $target->$keySegment;
+            }
+
+            $nestedValue = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($nestedTarget, $keySegments, $translation);
+        }
+
+        try {
+            data_set($target, $keySegment, $nestedValue);
+
+            return $target;
+        } catch (\Error $error) {
+            if (! str_starts_with($error->getMessage(), 'Cannot modify readonly property')) {
+                throw $error;
+            }
+        }
+
+        $reflection = new \ReflectionClass($target);
+
+        $mutated = $reflection->newInstanceWithoutConstructor();
+
+        foreach ($reflection->getProperties() as $property) {
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            $propertyName = $property->getName();
+
+            if ($propertyName === $keySegment) {
+                $property->setValue($mutated, $nestedValue);
+
+                continue;
+            }
+
+            if ($property->isInitialized($target)) {
+                $property->setValue($mutated, $property->getValue($target));
+            }
+        }
+
+        return $mutated;
+    }
+
+    /**
+     * Set or add translation in its **stored representation form**
+     * for a **concrete translatable attribute**, given its already-resolved translation key.
      *
      * @param string $key
      * @param string|null $value
      * @param string $locale
-     * @return static
+     * @return void
      * @internal
      */
-    protected function setTranslationWithResolvedKey(string $key, ?string $value, string $locale): static
+    protected function setTranslationWithResolvedKey(string $key, ?string $value, string $locale): void
     {
         if (! is_null($value)) {
             $this->getTranslationsState()->upsert($key, $value, $locale);
         } else {
             $this->removeTranslationWithResolvedKey($key, $locale);
         }
-
-        return $this;
     }
 
     /**
-     * Remove a **listed translatable attribute** translation.
+     * Remove a **concrete translatable attribute** translation.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
@@ -292,23 +371,23 @@ trait ManagesTranslations
         $key = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
 
-        return $this->removeTranslationWithResolvedKey($key, $locale);
+        $this->removeTranslationWithResolvedKey($key, $locale);
+
+        return $this;
     }
 
     /**
-     * Remove a **listed translatable attribute** translation, given its
-     * already-resolved, identity-based translation key.
+     * Remove a **concrete translatable attribute** translation,
+     * given its already-resolved translation key.
      *
      * @param string $key
      * @param string $locale
-     * @return static
+     * @return void
      * @internal
      */
-    protected function removeTranslationWithResolvedKey(string $key, string $locale): static
+    protected function removeTranslationWithResolvedKey(string $key, string $locale): void
     {
         $this->getTranslationsState()->delete($key, $locale);
-
-        return $this;
     }
 
     /**
@@ -319,23 +398,23 @@ trait ManagesTranslations
      */
     public function removeTranslationsForKeys(array|string $keys): static
     {
-        return $this->removeTranslationsWithResolvedKeys(
+        $this->removeTranslationsWithResolvedKeys(
             array_map($this->resolveTranslationKey(...), array_filter((array) $keys, $this->isTranslatableAttribute(...)))
         );
+
+        return $this;
     }
 
     /**
-     * Remove the entire translations for the given, already-resolved, identity-based keys.
+     * Remove the entire translations for the given, already-resolved keys.
      *
      * @param array<string> $keys
-     * @return static
+     * @return void
      * @internal
      */
-    protected function removeTranslationsWithResolvedKeys(array $keys): static
+    protected function removeTranslationsWithResolvedKeys(array $keys): void
     {
         $this->getTranslationsState()->deleteKeys($keys);
-
-        return $this;
     }
 
     /**
@@ -364,7 +443,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Determine if the given **listed translatable attribute** has a translation for the specified locale.
+     * Determine if the given **concrete translatable attribute** has a translation for the specified locale.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.

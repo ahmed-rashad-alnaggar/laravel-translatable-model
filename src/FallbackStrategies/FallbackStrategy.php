@@ -12,8 +12,9 @@ abstract class FallbackStrategy
      * @template TStrategy of \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy
      *
      * @param TStrategy|class-string<TStrategy>|string $strategy
-     * @throws \InvalidArgumentException
      * @return ($strategy is class-string<TStrategy> ? TStrategy : ($strategy is \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy ? TStrategy : \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy))
+     *
+     * @throws \InvalidArgumentException
      */
     public static function make(FallbackStrategy|string $strategy)
     {
@@ -31,7 +32,7 @@ abstract class FallbackStrategy
         }
 
         if (! is_subclass_of($strategy, static::class)) {
-            throw new \InvalidArgumentException("Invalid fallback strategy [{$strategy}] given.");
+            throw new \InvalidArgumentException("The given fallback strategy [{$strategy}] is invalid.");
         }
 
         return new $strategy(...$arguments);

@@ -163,11 +163,6 @@ trait HasTranslations
         }
 
         $normalizedKey = str_replace('->', '.', $key);
-        $column = Str::before($normalizedKey, '.');
-
-        if ($this->isTranslatableAttribute($column)) {
-            return $this->fillTranslatableColumnJsonAttribute($normalizedKey, $value, app()->currentLocale());
-        }
 
         if ($this->isTranslatableAttribute($normalizedKey)) {
             return $this->fillTranslatableJsonAttribute($normalizedKey, $value, app()->currentLocale());
@@ -175,6 +170,10 @@ trait HasTranslations
 
         if ($this->isNestingTranslatableAttributes($normalizedKey)) {
             return $this->fillJsonAttributeNestingTranslatables($normalizedKey, $value, app()->currentLocale());
+        }
+
+        if ($this->isAttributeNestedWithinTranslatableAttribute($normalizedKey)) {
+            return $this->fillJsonAttributeNestedWithinTranslatableAttribute($normalizedKey, $value, app()->currentLocale());
         }
 
         return parent::fillJsonAttribute($key, $value);
