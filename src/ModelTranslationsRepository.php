@@ -5,9 +5,12 @@ namespace Alnaggar\TranslatableModel;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Traits\Macroable;
 
 class ModelTranslationsRepository
 {
+    use Macroable;
+
     /**
      * The database connection instance.
      *
