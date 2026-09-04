@@ -5,7 +5,6 @@ namespace Alnaggar\TranslatableModel;
 use Alnaggar\TranslatableModel\Concerns;
 use Alnaggar\TranslatableModel\Facades\TranslatableModel;
 use Illuminate\Contracts\Database\Eloquent\CastsInboundAttributes;
-use Illuminate\Support\Str;
 
 trait HasTranslations
 {

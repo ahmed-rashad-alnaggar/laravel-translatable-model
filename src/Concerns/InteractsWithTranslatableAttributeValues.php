@@ -4,7 +4,6 @@ namespace Alnaggar\TranslatableModel\Concerns;
 
 use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 
 trait InteractsWithTranslatableAttributeValues
 {
