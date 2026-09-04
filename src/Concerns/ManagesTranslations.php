@@ -90,7 +90,7 @@ trait ManagesTranslations
      * @param string $key
      * @param array<string>|null $locales
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function getTranslations(string $key, ?array $locales = null, FallbackStrategy|string|null $fallbackStrategy = null): ?array
     {
@@ -217,7 +217,7 @@ trait ManagesTranslations
      * Set or add translations for a **concrete translatable attribute**.
      *
      * @param string $key
-     * @param array<string, string|null> $translations
+     * @param array<string, mixed> $translations
      * @return static
      */
     public function setTranslations(string $key, array $translations): static
