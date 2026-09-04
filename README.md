@@ -257,6 +257,9 @@ protected function translatables(): array
 > [!WARNING]
 > Every item must actually carry its identity field (`id` by default, or whatever `*:fieldName` names) for its translation to be tracked. An item missing that field cannot have its translation key resolved and **will result in an exception**.
 
+> [!WARNING]
+> Mixing literal numeric segments and wildcard segments across the levels of a single translatable path - e.g. `items.0.subitems.*.name` - is not supported. Every array-index level in the path must be declared the same way, either all literal or all wildcard.
+
 > [!NOTE]
 > The exact string format used internally for a wildcard-resolved storage key (visible if you inspect `model_translations.key` directly) is an implementation detail. Don't parse it or write queries against its literal shape — it may change between versions. Use the model's own API (`getTranslation()`, `getTranslatables()`, etc.) instead.
 
