@@ -130,7 +130,9 @@ trait InteractsWithTranslatableAttributeValues
 
         $this->removeTranslationsWithResolvedKeys(array_keys(array_diff_key($oldResolvedTranslationKeys, $newResolvedTranslationKeys)));
 
-        $this->attributes[$key] = $this->castColumnNestingTranslatablesArrayValue($key, $newAttribute);
+        $this->attributes[$key] = ! is_null($this->getAttributeFromArray($key))
+            ? $this->castColumnNestingTranslatablesArrayValue($key, $newAttribute)
+            : null;
 
         return $returnValue;
     }
