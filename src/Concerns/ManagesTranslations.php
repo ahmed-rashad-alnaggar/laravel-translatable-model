@@ -2,7 +2,6 @@
 
 namespace Alnaggar\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\Facades\TranslatableModel;
 use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Alnaggar\TranslatableModel\FallbackStrategies\NoFallbackStrategy;
 use Illuminate\Support\Arr;
@@ -189,24 +188,22 @@ trait ManagesTranslations
 
         $attributes = $this->attributes;
 
-        TranslatableModel::withoutTranslations(function () use ($key, $translationKey, $translation, $locale): void {
-            if (! str_contains($key, '.')) {
-                $this->setAttribute($key, $translation);
+        if (! str_contains($key, '.')) {
+            parent::setAttribute($key, $translation);
 
-                $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
-            } else {
-                $keySegments = explode('.', $key);
-                $column = array_shift($keySegments);
+            $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
+        } else {
+            $keySegments = explode('.', $key);
+            $column = array_shift($keySegments);
 
-                $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($this->getAttributeValue($column), $keySegments, $translation);
+            $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue(parent::getAttributeValue($column), $keySegments, $translation);
 
-                $this->setAttribute($column, $attribute);
+            parent::setAttribute($column, $attribute);
 
-                $translation = Arr::get($this->getArrayAttributeByKey($column), implode('.', $keySegments));
+            $translation = Arr::get($this->getArrayAttributeByKey($column), implode('.', $keySegments));
 
-                $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
-            }
-        });
+            $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
+        }
 
         $this->attributes = $attributes;
 
@@ -230,40 +227,37 @@ trait ManagesTranslations
 
         $attributes = $this->attributes;
 
-        TranslatableModel::withoutTranslations(function () use ($key, $translationKey, $translations): void {
-            if (str_contains($key, '.')) {
-                $keySegments = explode('.', $key);
-                $column = array_shift($keySegments);
-                $path = implode('.', $keySegments);
+        if (str_contains($key, '.')) {
+            $keySegments = explode('.', $key);
+            $column = array_shift($keySegments);
+            $path = implode('.', $keySegments);
 
-                $castedAttribute = $this->getAttributeValue($column);
+            $castedAttribute = parent::getAttributeValue($column);
+        }
+
+        foreach ($translations as $locale => $translation) {
+            if (is_null($translation)) {
+                $this->removeTranslationWithResolvedKey($translationKey, $locale);
+
+                continue;
             }
 
-            foreach ($translations as $locale => $translation) {
-                if (is_null($translation)) {
-                    $this->removeTranslationWithResolvedKey($translationKey, $locale);
+            if (! str_contains($key, '.')) {
+                parent::setAttribute($key, $translation);
 
-                    continue;
-                }
+                $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
 
-                if (! str_contains($key, '.')) {
-                    $this->setAttribute($key, $translation);
+                continue;
+            } else {
+                $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($castedAttribute, $keySegments, $translation);
 
-                    $this->setTranslationWithResolvedKey($translationKey, $this->getAttributeFromArray($key), $locale);
+                parent::setAttribute($column, $attribute);
 
-                    continue;
-                } else {
-                    $attribute = $this->forceMutateNestedTranslationWithinCastedNestingColumnValue($castedAttribute, $keySegments, $translation);
+                $translation = Arr::get($this->getArrayAttributeByKey($column), $path);
 
-                    $this->setAttribute($column, $attribute);
-
-                    $translation = Arr::get($this->getArrayAttributeByKey($column), $path);
-
-                    $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
-                }
+                $this->setTranslationWithResolvedKey($translationKey, $this->encodeNestedTranslation($translation), $locale);
             }
-        });
-
+        }
 
         $this->attributes = $attributes;
 
