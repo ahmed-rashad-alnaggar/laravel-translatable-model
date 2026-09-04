@@ -4,9 +4,12 @@ namespace Alnaggar\TranslatableModel;
 
 use Alnaggar\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy;
 use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
+use Illuminate\Support\Traits\Macroable;
 
 class TranslatableModelManager
 {
+    use Macroable;
+
     /**
      * Whether translation interception is currently disabled.
      *

@@ -5,9 +5,12 @@ namespace Alnaggar\TranslatableModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Support\Traits\Macroable;
 
 class ModelTranslatableQueryBuilder extends Builder
 {
+    use Macroable;
+
     /**
      * The translatable model being queried.
      *
