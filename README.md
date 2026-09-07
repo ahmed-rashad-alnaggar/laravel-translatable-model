@@ -132,8 +132,10 @@ $titleAr = $post->getTranslation(
 $titleAr = $post->title;
 $titleAr = $post['title'];
 
-// Every locale that currently has a translation for this key
-$allTitles = $post->getTranslations('title'); // ['ar' => 'مرحبا بالعالم', 'en' => 'Hello world', 'fr' => 'Bonjour à tous']
+$allTitles = $post->getTranslations(
+    key: 'title',
+    fallbackStrategy: null // Applying the model's (or config's) default fallback strategy
+);
 ```
 
 > [!IMPORTANT]
@@ -211,9 +213,9 @@ $post->removeTranslation(
     locale: 'fr' // null for current locale
 ); 
 
-$post->removeTranslationsForKeys(['title', 'meta.description']); // every translation for these keys across all locales
-$post->removeTranslationsForLocales('fr'); // every translation for this locale (accepts an array too)
-$post->flushAllTranslations(); // everything
+$post->removeTranslationsForKeys(['title', 'meta.description']); // Every translation for these keys across all locales
+$post->removeTranslationsForLocales('fr'); // Every translation for this locale (accepts an array too)
+$post->flushAllTranslations(); // Everything
 
 $post->save();
 ```
@@ -250,7 +252,7 @@ protected function translatables(): array
 $post->meta; // => ['author' => 'Ahmad', 'description' => 'Translated value']
 
 $post->meta = ['author' => 'Ahmad', 'description' => 'A translations management project'];
-// or, targeting just the leaf directly:
+// Or, targeting just the leaf directly:
 $post['meta->description'] = 'A translations management project';
 
 $post->save();
@@ -263,7 +265,7 @@ For a collection of items — however it's cast (a plain `array`, a `Collection`
 ```php
 protected function translatables(): array
 {
-    return ['variants.*.label']; // matches variants.0.label, variants.1.label, ...
+    return ['variants.*.label']; // Matches variants.0.label, variants.1.label, ...
 }
 ```
 
@@ -427,8 +429,8 @@ This is also how you set a translatable column's *placeholder* directly — e.g.
 ```php
 $post = TranslatableModel::withoutTranslations(function () {
     return Post::create([
-        'title' => 'untitled', // stored as-is, in the title column itself — not a translation
-        'meta' => ['author' => 'Ahmad', 'description' => 'no description yet'], // same thing applies to meta.description
+        'title' => 'untitled', // Stored as-is, in the title column itself — not a translation
+        'meta' => ['author' => 'Ahmad', 'description' => 'no description yet'], // Same thing applies to meta.description
     ]);
 });
 ```
@@ -442,7 +444,7 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 | Method                                                        | Returns                  | Description                                                                                                                                                                       |
 | ------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getTranslation(key, locale = null, fallbackStrategy = null)` | `?string`                | Get one translation for a locale, applying the specified fallback strategy                                                                                                        |
-| `getTranslations(key, fallbackStrategy = null)`               | `?array`                 | Get all available translations for one key                                                                                                                                        |
+| `getTranslations(key, fallbackStrategy = null)`               | `?array`                 | Get all available translations for one key, applying the specified fallback strategy                                                                                              |
 | `setTranslation(key, value, locale = null)`                   | `static`                 | Set one translation; `null` removes it                                                                                                                                            |
 | `setTranslations(key, values)`                                | `static`                 | Set translations for one key across multiple locales                                                                                                                              |
 | `removeTranslation(key, locale = null)`                       | `static`                 | Remove one translation for a locale                                                                                                                                               |
