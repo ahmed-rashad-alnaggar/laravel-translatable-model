@@ -31,14 +31,18 @@ trait InteractsWithTranslatableAttributeValues
      * @param string $key
      * @param string $locale
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
-     * @return mixed
+     * @return string|null
      */
-    protected function getColumnNestingTranslatablesValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): mixed
+    protected function getColumnNestingTranslatablesValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): ?string
     {
+        if (is_null($this->getAttributeFromArray($key))) {
+            return null;
+        }
+
         $attribute = $this->getArrayAttributeByKey($key);
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $translationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
+            $translationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
             $translation = $this->getTranslationWithResolvedKey($translationKey, $locale, $fallbackStrategy);
 
             if (! is_null($translation)) {
@@ -244,10 +248,10 @@ trait InteractsWithTranslatableAttributeValues
      *
      * @param string $key
      * @param array $value
-     * @return mixed
+     * @return string
      * @internal
      */
-    protected function castColumnNestingTranslatablesArrayValue(string $key, array $value): mixed
+    protected function castColumnNestingTranslatablesArrayValue(string $key, array $value): string
     {
         $value = $this->asJson($value, $this->getJsonCastFlags($key));
 
