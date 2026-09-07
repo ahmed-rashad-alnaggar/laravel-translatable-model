@@ -285,9 +285,12 @@ trait InteractsWithTranslatableAttributes
         if (! $keyVerifiedExistenceAgainstModelData) {
             $keySegments = explode('.', $key);
             $column = $keySegments[0];
-            $attribute = $this->getArrayAttributeByKey($column);
 
-            if (! Arr::has($attribute, Str::after($key, '.'))) {
+            $keyExists = count($keySegments) === 1
+                ? array_key_exists($column, $this->attributes)
+                : Arr::has($attribute = $this->getArrayAttributeByKey($column), Str::after($key, '.'));
+
+            if (! $keyExists) {
                 throw new \InvalidArgumentException(
                     "Unable to resolve translation key for the concrete translatable attribute [{$key}]: it does not exist in the model's instance data."
                 );
