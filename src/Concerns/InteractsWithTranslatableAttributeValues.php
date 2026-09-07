@@ -54,7 +54,7 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
-     * Set or add translation for a **listed translatable column**.
+     * Set or add translation for a translatable column.
      *
      * @param string $key
      * @param mixed $value
@@ -76,6 +76,62 @@ trait InteractsWithTranslatableAttributeValues
         $this->setTranslationWithResolvedKey($key, $this->getAttributeFromArray($key), $locale);
 
         $this->attributes[$key] = $placeholder;
+
+        return $returnValue;
+    }
+
+    /**
+     * Set a nesting column while handling its nested translatable attributes.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param string $locale
+     * @return mixed
+     * @internal
+     */
+    protected function setColumnNestingTranslatables(string $key, mixed $value, string $locale): mixed
+    {
+        $oldAttribute = $this->getArrayAttributeByKey($key);
+        $oldResolvedTranslationKeys = [];
+
+        foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
+            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true)] = $nestedConcreteTranslatableAttribute;
+        }
+
+        // Run the whole payload through the real cast pipeline first (e.g. array
+        // cast, encryption), so each tracked leaf's translation is extracted in
+        // its normalized, storable form rather than the raw pre-cast input.
+        $returnValue = parent::setAttribute($key, $value);
+
+        $newAttribute = $this->getArrayAttributeByKey($key);
+        $newResolvedTranslationKeys = [];
+
+        foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
+            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
+            $translation = $this->encodeNestedTranslation(Arr::get($newAttribute, $nestedConcreteTranslatableAttribute));
+
+            // Restore the placeholder by resolved key, not position - the item may
+            // have moved, but its previous value still needs to be looked up from
+            // where it used to sit in $oldAttribute.
+            //
+            // A resolved key with no entry in $oldResolvedTranslationKeys is a
+            // genuinely new leaf - there is no prior placeholder to preserve,
+            // so the placeholder is `null`, not whatever happens to sit at the
+            // new position in $newAttribute.
+            $placeholder = array_key_exists($newResolvedTranslationKey, $oldResolvedTranslationKeys)
+                ? Arr::get($oldAttribute, $oldResolvedTranslationKeys[$newResolvedTranslationKey])
+                : null;
+
+            $this->setTranslationWithResolvedKey($newResolvedTranslationKey, $translation, $locale);
+
+            Arr::set($newAttribute, $nestedConcreteTranslatableAttribute, $placeholder);
+
+            $newResolvedTranslationKeys[$newResolvedTranslationKey] = $nestedConcreteTranslatableAttribute;
+        }
+
+        $this->removeTranslationsWithResolvedKeys(array_keys(array_diff_key($oldResolvedTranslationKeys, $newResolvedTranslationKeys)));
+
+        $this->attributes[$key] = $this->castColumnNestingTranslatablesArrayValue($key, $newAttribute);
 
         return $returnValue;
     }
@@ -106,7 +162,7 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
-     * Set or add translation for a **listed translatable json attribute**.
+     * Set or add translation for a **concrete translatable json attribute**.
      *
      * @param string $key
      * @param mixed $value
@@ -116,71 +172,9 @@ trait InteractsWithTranslatableAttributeValues
      */
     protected function fillTranslatableJsonAttribute(string $key, mixed $value, string $locale): static
     {
-        $jsonAttributeKey = str_replace('.', '->', $key);
-        [$column, $path] = explode('.', $key, 2);
-
-        $attribute = $this->getArrayAttributeByKey($column);
-        $placeholder = Arr::get($attribute, $path);
-
         $this->setTranslationWithResolvedKey($this->resolveTranslationKey($key), $this->encodeNestedTranslation($value), $locale);
 
-        return parent::fillJsonAttribute($jsonAttributeKey, $placeholder);
-    }
-
-    /**
-     * Set a nesting column while handling its nested translatable attributes.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @param string $locale
-     * @return mixed
-     * @internal
-     */
-    protected function setColumnNestingTranslatables(string $key, mixed $value, string $locale): mixed
-    {
-        $oldAttribute = $this->getArrayAttributeByKey($key);
-        $oldResolvedTranslationKeys = [];
-
-        foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}")] = $nestedConcreteTranslatableAttribute;
-        }
-
-        // Run the whole payload through the real cast pipeline first (e.g. array
-        // cast, encryption), so each tracked leaf's translation is extracted in
-        // its normalized, storable form rather than the raw pre-cast input.
-        $returnValue = parent::setAttribute($key, $value);
-
-        $newAttribute = $this->getArrayAttributeByKey($key);
-        $newResolvedTranslationKeys = [];
-
-        foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
-            $translation = $this->encodeNestedTranslation(Arr::get($newAttribute, $nestedConcreteTranslatableAttribute));
-
-            // Restore the placeholder by resolved key, not position - the item may
-            // have moved, but its previous value still needs to be looked up from
-            // where it used to sit in $oldAttribute.
-            //
-            // A resolved key with no entry in $oldResolvedTranslationKeys is a
-            // genuinely new leaf - there is no prior placeholder to preserve,
-            // so the placeholder is `null`, not whatever happens to sit at the
-            // new position in $newAttribute.
-            $placeholder = array_key_exists($newResolvedTranslationKey, $oldResolvedTranslationKeys)
-                ? Arr::get($oldAttribute, $oldResolvedTranslationKeys[$newResolvedTranslationKey])
-                : null;
-
-            $this->setTranslationWithResolvedKey($newResolvedTranslationKey, $translation, $locale);
-
-            Arr::set($newAttribute, $nestedConcreteTranslatableAttribute, $placeholder);
-
-            $newResolvedTranslationKeys[$newResolvedTranslationKey] = $nestedConcreteTranslatableAttribute;
-        }
-
-        $this->removeTranslationsWithResolvedKeys(array_keys(array_diff_key($oldResolvedTranslationKeys, $newResolvedTranslationKeys)));
-
-        $this->attributes[$key] = $this->castColumnNestingTranslatablesArrayValue($key, $newAttribute);
-
-        return $returnValue;
+        return $this;
     }
 
     /**
@@ -201,7 +195,7 @@ trait InteractsWithTranslatableAttributeValues
         $oldResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}")] = $nestedConcreteTranslatableAttribute;
+            $oldResolvedTranslationKeys[$this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true)] = $nestedConcreteTranslatableAttribute;
         }
 
         // Write the incoming value first, so live attribute data reflects the new
@@ -214,7 +208,7 @@ trait InteractsWithTranslatableAttributeValues
         $newResolvedTranslationKeys = [];
 
         foreach ($this->resolveNestedConcreteTranslatableAttributes($key) as $nestedConcreteTranslatableAttribute) {
-            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}");
+            $newResolvedTranslationKey = $this->resolveTranslationKey("{$key}.{$nestedConcreteTranslatableAttribute}", keyVerifiedExistenceAgainstModelData: true);
             $translation = $this->encodeNestedTranslation(Arr::get($value, $nestedConcreteTranslatableAttribute));
 
             // Restore the placeholder by resolved key, not position - the item
