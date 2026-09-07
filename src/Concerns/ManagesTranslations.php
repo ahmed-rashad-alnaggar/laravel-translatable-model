@@ -44,7 +44,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Retrieve the translation of a **listed translatable attribute** for the given locale.
+     * Retrieve the translation of a **concrete translatable attribute** for the given locale.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
@@ -65,7 +65,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Retrieve all translations of a **listed translatable attribute** across all locales.
+     * Retrieve all translations of a **concrete translatable attribute** across all locales.
      *
      * @param string $key
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
@@ -92,8 +92,8 @@ trait ManagesTranslations
     }
 
     /**
-     * Retrieve the translation of a **listed translatable attribute**, given its
-     * already-resolved, identity-based translation key.
+     * Retrieve the translation in its **stored representation form**
+     * for a **concrete translatable attribute**, given its already-resolved translation key.
      *
      * @param string $key
      * @param string $locale
@@ -113,7 +113,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Set or add translation for a **listed translatable attribute**.
+     * Set or add translation for a **concrete translatable attribute**.
      *
      * @param string $key
      * @param string|null $value
@@ -129,11 +129,13 @@ trait ManagesTranslations
         $key = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
 
-        return $this->setTranslationWithResolvedKey($key, $value, $locale);
+        $this->setTranslationWithResolvedKey($key, $value, $locale);
+
+        return $this;
     }
 
     /**
-     * Set or add translations for a **listed translatable attribute**.
+     * Set or add translations for a **concrete translatable attribute**.
      *
      * @param string $key
      * @param array<string, string|null> $values
@@ -155,28 +157,26 @@ trait ManagesTranslations
     }
 
     /**
-     * Set or add translation for a **listed translatable attribute**, given
-     * its already-resolved, identity-based translation key.
+     * Set or add translation in its **stored representation form**
+     * for a **concrete translatable attribute**, given its already-resolved translation key.
      *
      * @param string $key
      * @param string|null $value
      * @param string $locale
-     * @return static
+     * @return void
      * @internal
      */
-    protected function setTranslationWithResolvedKey(string $key, ?string $value, string $locale): static
+    protected function setTranslationWithResolvedKey(string $key, ?string $value, string $locale): void
     {
         if (! is_null($value)) {
             $this->getTranslationsState()->upsert($key, $value, $locale);
         } else {
             $this->removeTranslationWithResolvedKey($key, $locale);
         }
-
-        return $this;
     }
 
     /**
-     * Remove a **listed translatable attribute** translation.
+     * Remove a **concrete translatable attribute** translation.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
@@ -191,23 +191,23 @@ trait ManagesTranslations
         $key = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
 
-        return $this->removeTranslationWithResolvedKey($key, $locale);
+        $this->removeTranslationWithResolvedKey($key, $locale);
+
+        return $this;
     }
 
     /**
-     * Remove a **listed translatable attribute** translation, given its
-     * already-resolved, identity-based translation key.
+     * Remove a **concrete translatable attribute** translation,
+     * given its already-resolved translation key.
      *
      * @param string $key
      * @param string $locale
-     * @return static
+     * @return void
      * @internal
      */
-    protected function removeTranslationWithResolvedKey(string $key, string $locale): static
+    protected function removeTranslationWithResolvedKey(string $key, string $locale): void
     {
         $this->getTranslationsState()->delete($key, $locale);
-
-        return $this;
     }
 
     /**
@@ -218,23 +218,23 @@ trait ManagesTranslations
      */
     public function removeTranslationsForKeys(array|string $keys): static
     {
-        return $this->removeTranslationsWithResolvedKeys(
+        $this->removeTranslationsWithResolvedKeys(
             array_map($this->resolveTranslationKey(...), array_filter((array) $keys, $this->isTranslatableAttribute(...)))
         );
+
+        return $this;
     }
 
     /**
-     * Remove the entire translations for the given, already-resolved, identity-based keys.
+     * Remove the entire translations for the given, already-resolved keys.
      *
      * @param array<string> $keys
-     * @return static
+     * @return void
      * @internal
      */
-    protected function removeTranslationsWithResolvedKeys(array $keys): static
+    protected function removeTranslationsWithResolvedKeys(array $keys): void
     {
         $this->getTranslationsState()->deleteKeys($keys);
-
-        return $this;
     }
 
     /**
@@ -263,7 +263,7 @@ trait ManagesTranslations
     }
 
     /**
-     * Determine if the given **listed translatable attribute** has a translation for the specified locale.
+     * Determine if the given **concrete translatable attribute** has a translation for the specified locale.
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
