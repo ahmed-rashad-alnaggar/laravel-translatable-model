@@ -137,28 +137,70 @@ trait InteractsWithTranslatableAttributeValues
     }
 
     /**
-     * Set a json attribute nested under a **listed translatable column**.
+     * Set a json attribute nested within a translatable attribute.
      *
      * @param string $key
      * @param mixed $value
      * @param string $locale
      * @return static
      * @internal
+     * 
+     * @throws \LogicException
      */
-    protected function fillTranslatableColumnJsonAttribute(string $key, mixed $value, string $locale): static
+    protected function fillJsonAttributeNestedWithinTranslatableAttribute(string $key, mixed $value, string $locale): static
     {
-        $jsonAttributeKey = str_replace('.', '->', $key);
-        $column = Str::before($key, '.');
+        $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
 
-        $placeholder = $this->getAttributeFromArray($column);
+        $translatable =
+            Arr::first(
+                array_keys($this->getCachedTranslatablesMap()['literals']),
+                static fn (string $translatable): bool => str_starts_with($key, "{$translatable}.")
+            )
+            ?? Arr::first(
+                array_keys($this->getCachedTranslatablesMap()['wildcards']),
+                static fn (string $translatable): bool => str_starts_with($wildcardKey, "{$translatable}.")
+            );
 
-        $returnValue = parent::fillJsonAttribute($jsonAttributeKey, $value);
+        $keySegments = explode('.', $key);
+        $translatableSegmentsCount = count(explode('.', $translatable));
+        $concreteTranslatable = implode('.', array_slice($keySegments, 0, $translatableSegmentsCount));
 
-        $this->setTranslationWithResolvedKey($column, $this->getAttributeFromArray($column), $locale);
+        $translationKey = $this->resolveTranslationKey($concreteTranslatable);
+        $translation = $this->getTranslationWithResolvedKey($translationKey, $locale, $this->getDefaultTranslationsFallbackStrategy());
 
-        $this->attributes[$column] = $placeholder;
+        if (is_null($translation)) {
+            throw new \LogicException("Unable to set the json attribute [{$key}]: its enclosing translatable attribute [{$concreteTranslatable}] has no translation for the locale [{$locale}].");
+        }
 
-        return $returnValue;
+        if (! str_contains($concreteTranslatable, '.')) {
+            // Swap the translation in as the live attribute value, so
+            // parent::fillJsonAttribute() applies the incoming value on top of the
+            // translation's own structure - through the column's real cast pipeline -
+            // rather than on top of the raw placeholder; then extract the merged
+            // result and restore the placeholder.
+
+            $placeholder = $this->getAttributeFromArray($concreteTranslatable);
+
+            $this->attributes[$concreteTranslatable] = $translation;
+
+            parent::fillJsonAttribute(str_replace('.', '->', $key), $value);
+
+            $translation = $this->getAttributeFromArray($concreteTranslatable);
+
+            $this->attributes[$concreteTranslatable] = $placeholder;
+        } else {
+            $path = implode('.', array_slice($keySegments, $translatableSegmentsCount));
+
+            $translation = $this->decodeNestedTranslation($translation);
+
+            Arr::set($translation, $path, $value);
+
+            $translation = $this->encodeNestedTranslation($translation);
+        }
+
+        $this->setTranslationWithResolvedKey($translationKey, $translation, $locale);
+
+        return $this;
     }
 
     /**

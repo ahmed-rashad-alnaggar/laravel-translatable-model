@@ -139,6 +139,31 @@ trait InteractsWithTranslatableAttributes
     }
 
     /**
+     * Check if the attribute is nested within a translatable attribute.
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected function isAttributeNestedWithinTranslatableAttribute(string $key): bool
+    {
+        foreach (array_keys($this->getCachedTranslatablesMap()['literals']) as $translatable) {
+            if (str_starts_with($key, "{$translatable}.")) {
+                return true;
+            }
+        }
+
+        $wildcardKey = $this->normalizeConcreteKeyToLookupWildcardPattern($key);
+
+        foreach (array_keys($this->getCachedTranslatablesMap()['wildcards']) as $translatable) {
+            if (str_starts_with($wildcardKey, "{$translatable}.")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get the model's organized lookup tables for translatable attributes,
      * resolving and caching them once per instance.
      *
