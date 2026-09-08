@@ -134,7 +134,7 @@ $titleAr = $post['title'];
 
 $allTitles = $post->getTranslations(
     key: 'title',
-     locales: null // Applying every locale the model has translations for
+    locales: null // Applying every locale the model has translations for
     fallbackStrategy: null // Applying the model's (or config's) default fallback strategy
 );
 ```
@@ -168,7 +168,7 @@ $allTitles = $post->getTranslations(
 ```php
 $post->setTranslation(
     key: 'title',
-    value: 'Hello world',
+    translation: 'Hello world',
     locale: 'en' // null for current locale
 );
 
@@ -176,7 +176,10 @@ $post->setTranslation(
 $post->title = 'Bonjour à tous';
 $post['title'] = 'Bonjour à tous';
 
-$post->setTranslations('title', ['ar' => 'مرحبا', 'en' => 'Hello', 'fr' => 'Bonjour à tous']);
+$post->setTranslations(
+    key: 'title',
+    translations: ['ar' => 'مرحبا', 'en' => 'Hello', 'fr' => 'Bonjour à tous']
+);
 
 // Translations are upserted when the model is saved
 $post->save();
@@ -449,8 +452,8 @@ Outside `withoutTranslations()`, the same `Post::create([...])` call would inste
 | --------------------------------------------------------------  | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getTranslation(key, locale = null, fallbackStrategy = null)`   | `?string`                | Get one translation for a locale, applying the specified fallback strategy                                                                                                        |
 | `getTranslations(key, locales = null, fallbackStrategy = null)` | `?array`                 | Get all available translations for one key in the given locales, or across every locale the model has translations for, applying the specified fallback strategy                  |
-| `setTranslation(key, value, locale = null)`                     | `static`                 | Set one translation; `null` removes it                                                                                                                                            |
-| `setTranslations(key, values)`                                  | `static`                 | Set translations for one key across multiple locales                                                                                                                              |
+| `setTranslation(key, translation, locale = null)`               | `static`                 | Set one translation; `null` removes it                                                                                                                                            |
+| `setTranslations(key, translations)`                            | `static`                 | Set translations for one key across multiple locales                                                                                                                              |
 | `removeTranslation(key, locale = null)`                         | `static`                 | Remove one translation for a locale                                                                                                                                               |
 | `removeTranslationsForKeys(keys)`                               | `static`                 | Remove the given keys across all locales                                                                                                                                          |
 | `removeTranslationsForLocales(locales)`                         | `static`                 | Remove the given locales across all keys                                                                                                                                          |

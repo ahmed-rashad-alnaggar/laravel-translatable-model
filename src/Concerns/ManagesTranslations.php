@@ -4,6 +4,7 @@ namespace Alnaggar\TranslatableModel\Concerns;
 
 use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Alnaggar\TranslatableModel\FallbackStrategies\NoFallbackStrategy;
+use Illuminate\Support\Arr;
 
 trait ManagesTranslations
 {
@@ -53,15 +54,9 @@ trait ManagesTranslations
      */
     public function getTranslation(string $key, ?string $locale = null, FallbackStrategy|string|null $fallbackStrategy = null): ?string
     {
-        if (! $this->isTranslatableAttribute($key)) {
-            return null;
-        }
-
-        $key = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
-        $fallbackStrategy = FallbackStrategy::make($fallbackStrategy ?? $this->getDefaultTranslationsFallbackStrategy());
 
-        return $this->getTranslationWithResolvedKey($key, $locale, $fallbackStrategy);
+        return Arr::get($this->getTranslations($key, [$locale], $fallbackStrategy), $locale);
     }
 
     /**
@@ -123,32 +118,25 @@ trait ManagesTranslations
      * Set or add translation for a **concrete translatable attribute**.
      *
      * @param string $key
-     * @param string|null $value
+     * @param string|null $translation
      * @param string|null $locale Translation locale; defaults to app locale.
      * @return static
      */
-    public function setTranslation(string $key, ?string $value, ?string $locale = null): static
+    public function setTranslation(string $key, ?string $translation, ?string $locale = null): static
     {
-        if (! $this->isTranslatableAttribute($key)) {
-            return $this;
-        }
-
-        $key = $this->resolveTranslationKey($key);
         $locale ??= app()->currentLocale();
 
-        $this->setTranslationWithResolvedKey($key, $value, $locale);
-
-        return $this;
+        return $this->setTranslations($key, [$locale => $translation]);
     }
 
     /**
      * Set or add translations for a **concrete translatable attribute**.
      *
      * @param string $key
-     * @param array<string, string|null> $values
+     * @param array<string, string|null> $translations
      * @return static
      */
-    public function setTranslations(string $key, array $values): static
+    public function setTranslations(string $key, array $translations): static
     {
         if (! $this->isTranslatableAttribute($key)) {
             return $this;
@@ -156,7 +144,7 @@ trait ManagesTranslations
 
         $key = $this->resolveTranslationKey($key);
 
-        foreach ($values as $locale => $translation) {
+        foreach ($translations as $locale => $translation) {
             $this->setTranslationWithResolvedKey($key, $translation, $locale);
         }
 
