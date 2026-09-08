@@ -68,20 +68,27 @@ trait ManagesTranslations
      * Retrieve all translations of a **concrete translatable attribute** across all locales.
      *
      * @param string $key
+     * @param array<string>|null $locales
      * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
-     * @return array|null
+     * @return array<string, string|null>|null
      */
-    public function getTranslations(string $key, FallbackStrategy|string|null $fallbackStrategy = null): ?array
+    public function getTranslations(string $key, ?array $locales = null, FallbackStrategy|string|null $fallbackStrategy = null): ?array
     {
         if (! $this->isTranslatableAttribute($key)) {
             return null;
         }
 
-        $this->loadAllTranslations();
+        if (is_null($locales)) {
+            $this->loadAllTranslations();
+        } else {
+            foreach ($locales as $locale) {
+                $this->loadTranslations($locale);
+            }
+        }
 
         $translations = [];
         $key = $this->resolveTranslationKey($key);
-        $locales = $this->getTranslationsState()->locales();
+        $locales ??= $this->getTranslationsState()->locales();
         $fallbackStrategy = FallbackStrategy::make($fallbackStrategy ?? $this->getDefaultTranslationsFallbackStrategy());
 
         foreach ($locales as $locale) {
