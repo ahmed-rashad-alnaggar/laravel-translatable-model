@@ -3,13 +3,13 @@
 namespace Alnaggar\TranslatableModel;
 
 use Alnaggar\TranslatableModel\Concerns;
-use Alnaggar\TranslatableModel\Facades\TranslatableModel;
 use Illuminate\Contracts\Database\Eloquent\CastsInboundAttributes;
 
 trait HasTranslations
 {
     use Concerns\HandlesSoftDeleteTranslations,
         Concerns\HasDefaultFallbackStrategy,
+        Concerns\HasTranslationsInterceptionMode,
         Concerns\HasTranslationsState,
         Concerns\InteractsWithTranslatableAttributes,
         Concerns\InteractsWithTranslatableAttributeValues,
@@ -20,7 +20,7 @@ trait HasTranslations
      */
     protected function newBaseQueryBuilder()
     {
-        if (TranslatableModel::isTranslationsDisabled()) {
+        if ($this->isTranslationsDisabled()) {
             return parent::newBaseQueryBuilder();
         }
 
@@ -38,7 +38,7 @@ trait HasTranslations
     public function getAttributeValue($key)
     {
         if (
-            ! TranslatableModel::isTranslationsDisabled()
+            ! $this->isTranslationsDisabled()
             && $key !== $this->getKeyName()
             // Translations only apply to loaded database columns — a translatable column
             // skipped by a `select()` won't have translations applied.
@@ -67,7 +67,7 @@ trait HasTranslations
     {
         $arrayableAttributes = parent::getArrayableAttributes();
 
-        if (TranslatableModel::isTranslationsDisabled()) {
+        if ($this->isTranslationsDisabled()) {
             return $arrayableAttributes;
         }
 
@@ -91,7 +91,7 @@ trait HasTranslations
     protected function getClassCastableAttributeValue($key, $value)
     {
         if (
-            TranslatableModel::isTranslationsDisabled()
+            $this->isTranslationsDisabled()
             || (! $this->isTranslatableAttribute($key) && ! $this->isNestingTranslatableAttributes($key))
         ) {
             return parent::getClassCastableAttributeValue($key, $value);
@@ -134,7 +134,7 @@ trait HasTranslations
     public function setAttribute($key, $value)
     {
         if (
-            TranslatableModel::isTranslationsDisabled()
+            $this->isTranslationsDisabled()
             || str_contains($key, '.')
             || str_contains($key, '->')
         ) {
@@ -157,7 +157,7 @@ trait HasTranslations
      */
     public function fillJsonAttribute($key, $value)
     {
-        if (TranslatableModel::isTranslationsDisabled()) {
+        if ($this->isTranslationsDisabled()) {
             return parent::fillJsonAttribute($key, $value);
         }
 
