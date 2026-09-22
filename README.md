@@ -85,7 +85,7 @@ The table has a composite primary key on `(translatable_type, translatable_id, l
 
 ## Usage
 
-Add the `HasTranslations` trait to any Eloquent model and declare translatable attributes by overriding `translatables()`.
+Add the `HasTranslations` trait to any Eloquent model and declare translatable attributes via the `$translatables` property, by overriding `translatables()`, or both — **the two are merged**.
 
 ```php
 use Alnaggar\TranslatableModel\HasTranslations;
@@ -113,7 +113,7 @@ class Post extends Model
 }
 ```
 
-The declared column(s) — `title` and `meta` here — hold a *placeholder* as their raw database value, not the real translated text, which lives entirely in `model_translations`. The placeholder can be anything: whatever the column held before a translation was ever set, or a value you set deliberately (see [Disabling Translations](#disabling-translations) for writing one directly).
+The declared attributes hold a *placeholder* as their raw database value, not the real translated text, which lives entirely in `model_translations`. The placeholder can be anything: whatever the column held before a translation was ever set, or a value you set deliberately (see [Disabling Translations](#disabling-translations) for writing one directly).
 
 > [!WARNING]
 > A translatable attribute, [dynamic](#dynamic-translatables) or not, must always correspond to a real model attribute: either a model column itself or a nested attribute within one. That model column must also be loaded on the model — if it was excluded from the query using `select()`, for example, the attribute **will not be intercepted during normal model attribute access (except JSON selector access)**, and accessing it through **CRUD access or JSON selector access will throw an exception**.
@@ -328,7 +328,7 @@ class Setting extends Model
 With this enabled, the model's translatable attributes are *discovered* from what's already stored in `model_translations`, instead of coming from `translatables()`.
 
 > [!NOTE]
-> `hasDynamicTranslatables()` and `translatables()` are mutually exclusive, not merged — a dynamic model's static `translatables()` (if any) is ignored entirely in favor of discovery.
+> `hasDynamicTranslatables()` and `$translatables`/`translatables()` are mutually exclusive, not merged — a dynamic model's `$translatables`/`translatables()` (if any) is ignored entirely in favor of discovery.
 
 A dynamic key only needs to be registered explicitly with `rememberDynamicTranslatable()` when it is being translated **for the first time** — that is, when no translation for the key has ever been stored, or when all existing translations for that key have since been deleted. Once a translation exists, the key is discovered automatically on subsequent use.
 

@@ -178,7 +178,10 @@ trait InteractsWithTranslatableAttributes
 
         $translatables = $this->hasDynamicTranslatables()
             ? $this->discoverTranslatables()
-            : $this->translatables();
+            : array_values(array_unique([
+                ...(property_exists($this, 'translatables') ? $this->translatables : []),
+                ...$this->translatables(),
+            ]));
 
         foreach ($translatables as $translatable) {
             $this->rememberTranslatable($translatable);
