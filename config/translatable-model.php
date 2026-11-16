@@ -31,7 +31,7 @@ return [
     |     e.g. DedicatedLocaleFallbackStrategy::class.':en' to fall back to 'en'.
     |
     */
-    'fallback_strategy' => \Alnaggar\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy::class,
+    'fallback_strategy' => \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy::class,
 
     /*
     |--------------------------------------------------------------------------

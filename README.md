@@ -88,7 +88,7 @@ The table has a composite primary key on `(translatable_type, translatable_id, l
 Add the `HasTranslations` trait to any Eloquent model and declare translatable attributes via the `$translatables` property, by overriding `translatables()`, or both — **the two are merged**.
 
 ```php
-use Alnaggar\TranslatableModel\HasTranslations;
+use Alnaggar\Laravel\TranslatableModel\HasTranslations;
 
 class Post extends Model
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;

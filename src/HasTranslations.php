@@ -1,8 +1,8 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
-use Alnaggar\TranslatableModel\Concerns;
+use Alnaggar\Laravel\TranslatableModel\Concerns;
 use Illuminate\Contracts\Database\Eloquent\CastsInboundAttributes;
 
 trait HasTranslations

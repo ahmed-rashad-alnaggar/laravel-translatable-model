@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
@@ -14,14 +14,14 @@ class ModelTranslatableQueryBuilder extends Builder
     /**
      * The translatable model being queried.
      *
-     * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations
+     * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations
      */
     protected Model $translatableModel;
 
     /**
      * Set the translatable model being queried.
      *
-     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
+     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations $model
      * @return static
      */
     public function setTranslatableModel(Model $model)

@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +9,7 @@ class ModelTranslationsState
     /**
      * The owning model instance.
      *
-     * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations
+     * @var \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations
      */
     protected Model $model;
 

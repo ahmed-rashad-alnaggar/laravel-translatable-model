@@ -1,9 +1,9 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
-use Alnaggar\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy;
-use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
+use Alnaggar\Laravel\TranslatableModel\FallbackStrategies\DefaultLocaleFallbackStrategy;
+use Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Illuminate\Support\Traits\Macroable;
 
 class TranslatableModelManager
@@ -20,7 +20,7 @@ class TranslatableModelManager
     /**
      * Cached, resolved default fallback strategy.
      *
-     * @var \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy
+     * @var \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy
      */
     protected FallbackStrategy $defaultFallbackStrategy;
 
@@ -66,7 +66,7 @@ class TranslatableModelManager
     /**
      * The translations default fallback strategy.
      *
-     * @return \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy
+     * @return \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy
      */
     public function defaultFallbackStrategy(): FallbackStrategy
     {

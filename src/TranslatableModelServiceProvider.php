@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel;
+namespace Alnaggar\Laravel\TranslatableModel;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;

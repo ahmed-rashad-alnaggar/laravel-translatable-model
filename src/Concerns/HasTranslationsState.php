@@ -1,8 +1,8 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Concerns;
+namespace Alnaggar\Laravel\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\ModelTranslationsState;
+use Alnaggar\Laravel\TranslatableModel\ModelTranslationsState;
 use Illuminate\Database\Eloquent\Model;
 
 trait HasTranslationsState
@@ -10,7 +10,7 @@ trait HasTranslationsState
     /**
      * The translations state for this model instance.
      *
-     * @var \Alnaggar\TranslatableModel\ModelTranslationsState
+     * @var \Alnaggar\Laravel\TranslatableModel\ModelTranslationsState
      */
     protected ModelTranslationsState $translationsState;
 
@@ -22,7 +22,7 @@ trait HasTranslationsState
     public static function bootHasTranslationsState(): void
     {
         // Defer saving/deleting translations until the model is saved.
-        static::saved(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model */ Model $model): void {
+        static::saved(static function (/** @var \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations $model */ Model $model): void {
             $model->getTranslationsState()->commit();
         });
     }
@@ -40,7 +40,7 @@ trait HasTranslationsState
     /**
      * Get the translations state for this model instance.
      *
-     * @return \Alnaggar\TranslatableModel\ModelTranslationsState
+     * @return \Alnaggar\Laravel\TranslatableModel\ModelTranslationsState
      */
     public function getTranslationsState(): ModelTranslationsState
     {

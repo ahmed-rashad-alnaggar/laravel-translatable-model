@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Enums;
+namespace Alnaggar\Laravel\TranslatableModel\Enums;
 
 enum TranslationsInterceptionMode
 {

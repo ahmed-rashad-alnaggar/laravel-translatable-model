@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\FallbackStrategies;
+namespace Alnaggar\Laravel\TranslatableModel\FallbackStrategies;
 
 use Illuminate\Database\Eloquent\Model;
 

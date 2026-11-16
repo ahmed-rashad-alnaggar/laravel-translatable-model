@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Facades;
+namespace Alnaggar\Laravel\TranslatableModel\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Facade;
  * @method static mixed withoutTranslations(callable $callback)
  * @method static bool isTranslationsDisabled()
  * @method static string|null connection()
- * @method static \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy defaultFallbackStrategy()
+ * @method static \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy defaultFallbackStrategy()
  * @method static bool shouldFlushTranslationsOnSoftDelete()
  *
- * @see \Alnaggar\TranslatableModel\TranslatableModelManager
+ * @see \Alnaggar\Laravel\TranslatableModel\TranslatableModelManager
  */
 class TranslatableModel extends Facade
 {

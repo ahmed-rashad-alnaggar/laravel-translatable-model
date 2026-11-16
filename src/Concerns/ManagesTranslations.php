@@ -1,9 +1,9 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Concerns;
+namespace Alnaggar\Laravel\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
-use Alnaggar\TranslatableModel\FallbackStrategies\NoFallbackStrategy;
+use Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy;
+use Alnaggar\Laravel\TranslatableModel\FallbackStrategies\NoFallbackStrategy;
 use Illuminate\Support\Arr;
 
 trait ManagesTranslations
@@ -49,7 +49,7 @@ trait ManagesTranslations
      *
      * @param string $key
      * @param string|null $locale Translation locale; defaults to app locale.
-     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for the given locale is missing
+     * @param \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for the given locale is missing
      * @return string|null
      */
     public function getTranslation(string $key, ?string $locale = null, FallbackStrategy|string|null $fallbackStrategy = null): ?string
@@ -64,7 +64,7 @@ trait ManagesTranslations
      *
      * @param string $key
      * @param array<string>|null $locales
-     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
+     * @param \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy|class-string<\Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy>|string|null $fallbackStrategy Fallback strategy to follow when the translation for a locale is missing
      * @return array<string, string|null>|null
      */
     public function getTranslations(string $key, ?array $locales = null, FallbackStrategy|string|null $fallbackStrategy = null): ?array
@@ -99,7 +99,7 @@ trait ManagesTranslations
      *
      * @param string $key
      * @param string $locale
-     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
+     * @param \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
      * @return string|null
      */
     protected function getTranslationWithResolvedKey(string $key, string $locale, FallbackStrategy $fallbackStrategy): ?string

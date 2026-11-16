@@ -21,13 +21,13 @@
     },
     "autoload": {
         "psr-4": {
-            "Alnaggar\\TranslatableModel\\": "src/"
+            "Alnaggar\\Laravel\\TranslatableModel\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Alnaggar\\TranslatableModel\\TranslatableModelServiceProvider"
+                "Alnaggar\\Laravel\\TranslatableModel\\TranslatableModelServiceProvider"
             ]
         }
     },

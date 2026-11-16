@@ -1,8 +1,8 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Concerns;
+namespace Alnaggar\Laravel\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy;
+use Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy;
 use Illuminate\Support\Arr;
 
 trait InteractsWithTranslatableAttributeValues
@@ -14,7 +14,7 @@ trait InteractsWithTranslatableAttributeValues
      *
      * @param string $key
      * @param string $locale
-     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
+     * @param \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
      * @return string|null
      */
     protected function getTranslatableColumnValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): ?string
@@ -29,7 +29,7 @@ trait InteractsWithTranslatableAttributeValues
      *
      * @param string $key
      * @param string $locale
-     * @param \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
+     * @param \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy $fallbackStrategy
      * @return string|null
      */
     protected function getColumnNestingTranslatablesValue(string $key, string $locale, FallbackStrategy $fallbackStrategy): ?string

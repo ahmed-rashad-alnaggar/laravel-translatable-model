@@ -1,6 +1,6 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\FallbackStrategies;
+namespace Alnaggar\Laravel\TranslatableModel\FallbackStrategies;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,10 +9,10 @@ abstract class FallbackStrategy
     /**
      * Resolve a fallback strategy from a strategy instance, a class-string, or a `"ClassName:arg1,arg2"` string.
      *
-     * @template TStrategy of \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy
+     * @template TStrategy of \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy
      *
      * @param TStrategy|class-string<TStrategy>|string $strategy
-     * @return ($strategy is class-string<TStrategy> ? TStrategy : ($strategy is \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy ? TStrategy : \Alnaggar\TranslatableModel\FallbackStrategies\FallbackStrategy))
+     * @return ($strategy is class-string<TStrategy> ? TStrategy : ($strategy is \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy ? TStrategy : \Alnaggar\Laravel\TranslatableModel\FallbackStrategies\FallbackStrategy))
      * 
      * @throws \InvalidArgumentException
      */
@@ -42,7 +42,7 @@ abstract class FallbackStrategy
      * Resolve a translation by walking this strategy's fallback locales, in order,
      * until `$lookup` finds one or the fallback locales are exhausted.
      *
-     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
+     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations $model
      * @param string $key
      * @param string $requestedLocale The originally requested locale.
      * @param \Closure(string): (string|null) $lookup Attempts to resolve the translation for a single locale.
@@ -71,7 +71,7 @@ abstract class FallbackStrategy
     /**
      * The locales this strategy would try, in order.
      *
-     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
+     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations $model
      * @param string $key
      * @param string $requestedLocale
      * @return array<string>
@@ -81,7 +81,7 @@ abstract class FallbackStrategy
     /**
      * Value to use when every fallback locale is exhausted and none had a translation.
      *
-     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\TranslatableModel\HasTranslations $model
+     * @param \Illuminate\Database\Eloquent\Model&\Alnaggar\Laravel\TranslatableModel\HasTranslations $model
      * @param string $key
      * @param string $requestedLocale
      * @return string|null

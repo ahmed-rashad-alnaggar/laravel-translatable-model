@@ -1,8 +1,8 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Concerns;
+namespace Alnaggar\Laravel\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\ModelTranslationsRepository;
+use Alnaggar\Laravel\TranslatableModel\ModelTranslationsRepository;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 

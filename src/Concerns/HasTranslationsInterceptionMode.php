@@ -1,23 +1,23 @@
 <?php
 
-namespace Alnaggar\TranslatableModel\Concerns;
+namespace Alnaggar\Laravel\TranslatableModel\Concerns;
 
-use Alnaggar\TranslatableModel\Enums\TranslationsInterceptionMode;
-use Alnaggar\TranslatableModel\Facades\TranslatableModel;
+use Alnaggar\Laravel\TranslatableModel\Enums\TranslationsInterceptionMode;
+use Alnaggar\Laravel\TranslatableModel\Facades\TranslatableModel;
 
 trait HasTranslationsInterceptionMode
 {
     /**
      * This instance's override of translation interception.
      *
-     * @var \Alnaggar\TranslatableModel\Enums\TranslationsInterceptionMode
+     * @var \Alnaggar\Laravel\TranslatableModel\Enums\TranslationsInterceptionMode
      */
     protected TranslationsInterceptionMode $translationsInterceptionMode = TranslationsInterceptionMode::Global;
 
     /**
      * Get this instance's translation interception mode.
      *
-     * @return \Alnaggar\TranslatableModel\Enums\TranslationsInterceptionMode
+     * @return \Alnaggar\Laravel\TranslatableModel\Enums\TranslationsInterceptionMode
      */
     public function getTranslationsInterceptionMode(): TranslationsInterceptionMode
     {
@@ -27,7 +27,7 @@ trait HasTranslationsInterceptionMode
     /**
      * Set this instance's translation interception mode.
      *
-     * @param \Alnaggar\TranslatableModel\Enums\TranslationsInterceptionMode $mode
+     * @param \Alnaggar\Laravel\TranslatableModel\Enums\TranslationsInterceptionMode $mode
      * @return static
      */
     public function setTranslationsInterceptionMode(TranslationsInterceptionMode $mode): static
